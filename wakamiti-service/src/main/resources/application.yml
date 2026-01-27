@@ -1,0 +1,28 @@
+server:
+  port: 7264
+
+  connection-config:
+    read-timeout: PT5S
+    connect-timeout: PT2S
+
+#  log:
+#    level: TRACE
+
+
+
+mp:
+  openapi:
+    web-context: /swagger
+    ui:
+      enabled: true
+      web-context: /ui
+
+
+#  datasource:
+#    db-kind: h2
+#    jdbc:
+#      url: jdbc:h2:mem:default
+#    username: sa
+
+
+
