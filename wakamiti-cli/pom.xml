@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ This Source Code Form is subject to the terms of the Mozilla Public
+  ~ License, v. 2.0. If a copy of the MPL was not distributed with this
+  ~ file, You can obtain one at https://mozilla.org/MPL/2.0/.
+  -->
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>es.wakamiti</groupId>
+        <artifactId>wakamiti-runtime</artifactId>
+        <version>${revision}</version>
+    </parent>
+
+    <artifactId>wakamiti-cli</artifactId>
+
+    <properties>
+        <cli.dir>sonar-scanner-cli-7.2.0.5079</cli.dir>
+        <sonar.exec>
+            ${project.build.directory}${file.separator}${cli.dir}${file.separator}bin${file.separator}sonar-scanner
+        </sonar.exec>
+    </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>com.googlecode.maven-download-plugin</groupId>
+                <artifactId>download-maven-plugin</artifactId>
+                <version>1.13.0</version>
+                <executions>
+                    <execution>
+                        <id>get-sonar-cli</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>wget</goal>
+                        </goals>
+                        <configuration>
+                            <url>https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/${cli.dir}.zip</url>
+                            <outputDirectory>${project.build.directory}</outputDirectory>
+                            <unpack>true</unpack>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>run</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <outputFile>${build.directory}${file.separator}run.out</outputFile>
+                    <executable>go</executable>
+                    <arguments>
+                        <argument>run</argument>
+                        <argument>src${file.separator}main.go</argument>
+                    </arguments>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
