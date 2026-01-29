@@ -1,0 +1,33 @@
+name: Validate New Code
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  config_maven:
+    name: Maven Configuration
+    uses: wakamiti/wakamiti-github-actions/.github/workflows/maven.yml@main
+    secrets: inherit
+  validate_code:
+    name: Validate Code
+    uses: wakamiti/wakamiti-github-actions/.github/workflows/validate_code.yml@main
+    secrets: inherit
+    needs: config_maven
+  status:
+    if: github.event.pull_request.base.ref == 'main'
+      && (startsWith(github.event.pull_request.head.ref, 'release/')
+      || startsWith(github.event.pull_request.head.ref, 'hotfix/'))
+    uses: wakamiti/wakamiti-github-actions/.github/workflows/status.yml@main
+    secrets: inherit
+    needs: [config_maven, validate_code]
+    with:
+      branch: ${{ github.event.pull_request.head.ref }}
+  validate_version:
+    name: Check version
+    uses: wakamiti/wakamiti-github-actions/.github/workflows/validate_version.yml@main
+    secrets: inherit
+    needs: [config_maven, status]
+    with:
+      branch: ${{ github.event.pull_request.head.ref }}
+      changelog: ${{ needs.status.outputs.changelog }}
+      version: ${{ needs.status.outputs.version }}
