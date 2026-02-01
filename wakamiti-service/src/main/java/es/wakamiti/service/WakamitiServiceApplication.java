@@ -11,6 +11,10 @@ import io.helidon.config.ConfigSources;
 import io.helidon.microprofile.server.Server;
 import jakarta.enterprise.context.ApplicationScoped;
 
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
 
 @ApplicationScoped
 public class WakamitiServiceApplication {
@@ -26,9 +30,29 @@ public class WakamitiServiceApplication {
                 .sources(ConfigSources.classpath("application.yml").build())
                 .build();
 
+        Map<String, String> overrides = config.get("envs")
+                .detach() // removes prefix
+                .asMap()
+                .orElse(Map.of())
+                .entrySet().stream()
+                .filter(e -> Objects.nonNull(System.getenv(e.getKey())))
+                .collect(Collectors.toMap(Map.Entry::getValue,
+                        e -> System.getenv(e.getKey())));
+
+        if (!overrides.isEmpty()) {
+            config = Config.builder()
+                    .sources(
+                            ConfigSources.create(overrides, "env-mapped-overrides").build(),
+                            ConfigSources.classpath("application.yml").build()
+                    )
+                    .build();
+        }
+
         Server.builder()
                 .config(config)
                 .build()
                 .start();
     }
+
+
 }
