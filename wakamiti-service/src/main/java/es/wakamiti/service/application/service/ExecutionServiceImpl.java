@@ -21,8 +21,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * Implementation of the ExecutionService that handles asynchronous command
  * execution.
- *
- * @author mgalbis
  */
 @ApplicationScoped
 public class ExecutionServiceImpl implements ExecutionService {

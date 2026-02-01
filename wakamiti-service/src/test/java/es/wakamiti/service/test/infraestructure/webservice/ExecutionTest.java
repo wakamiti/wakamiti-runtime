@@ -51,7 +51,6 @@ public class ExecutionTest {
     @BeforeEach
     public void setUp() {
         uri = URI.create("ws://%s:%s/exec".formatted(target.getUri().getHost(), target.getUri().getPort()));
-//        uri = URI.create("ws://%s:%s/exec".formatted("localhost", 7264));
     }
 
     @AfterEach
