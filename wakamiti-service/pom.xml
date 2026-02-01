@@ -18,7 +18,7 @@
 
     <properties>
         <helidon.version>4.3.3</helidon.version>
-        <logback.version>1.5.26</logback.version>
+        <logback.version>1.5.27</logback.version>
 
         <jlink.skip>false</jlink.skip>
     </properties>
@@ -117,7 +117,7 @@
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
-            <version>3.26.3</version>
+            <version>3.27.7</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -136,28 +136,28 @@
 
     <build>
         <plugins>
-<!--            <plugin>-->
-<!--                <artifactId>maven-dependency-plugin</artifactId>-->
-<!--                <version>3.8.1</version>-->
-<!--                <executions>-->
-<!--                    <execution>-->
-<!--                        <id>libs</id>-->
-<!--                        <phase>initialize</phase>-->
-<!--                        <goals>-->
-<!--                            <goal>copy-dependencies</goal>-->
-<!--                        </goals>-->
-<!--                        <configuration>-->
-<!--                            <outputDirectory>${project.build.directory}/lib</outputDirectory>-->
-<!--                            <includeScope>runtime</includeScope>-->
-<!--                        </configuration>-->
-<!--                    </execution>-->
-<!--                </executions>-->
-<!--            </plugin>-->
+            <plugin>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>3.9.0</version>
+                <executions>
+                    <execution>
+                        <id>libs</id>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/lib</outputDirectory>
+                            <includeScope>runtime</includeScope>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>3.4.2</version>
+                <version>3.5.0</version>
                 <configuration>
 <!--                    <outputDirectory>${project.build.directory}/staging</outputDirectory>-->
 <!--                    <finalName>wakamiti-launcher</finalName>-->
@@ -172,67 +172,6 @@
                     </archive>
                 </configuration>
             </plugin>
-
-<!--            <plugin>-->
-<!--                <groupId>es.wakamiti</groupId>-->
-<!--                <artifactId>jdeps-maven-plugin</artifactId>-->
-<!--                <version>1.0.0-SNAPSHOT</version>-->
-<!--                <executions>-->
-<!--                    <execution>-->
-<!--                        <goals><goal>jdeps</goal></goals>-->
-<!--                        <configuration>-->
-<!--                            <modulesDir>${project.build.directory}${file.separator}mods</modulesDir>-->
-<!--                        </configuration>-->
-<!--                    </execution>-->
-<!--                </executions>-->
-<!--            </plugin>-->
-
-<!--            <plugin>-->
-<!--                <groupId>io.helidon.build-tools</groupId>-->
-<!--                <artifactId>helidon-maven-plugin</artifactId>-->
-<!--                <executions>-->
-<!--                    <execution>-->
-<!--                        <id>jlink-image</id>-->
-<!--                        <goals>-->
-<!--                            <goal>jlink-image</goal>-->
-<!--                        </goals>-->
-<!--                        <configuration>-->
-<!--                            <addClassDataSharingArchive>false</addClassDataSharingArchive>-->
-<!--                            <stripDebug>false</stripDebug>-->
-<!--                            <additionalModules>-->
-<!--                                <module>java.base</module>-->
-<!--                                <module>java.logging</module>-->
-<!--                            </additionalModules>-->
-<!--                            <defaultJvmOptions>&#45;&#45;module-path ${project.build.directory}${file.separator}lib${file.separator}*</defaultJvmOptions>-->
-<!--                        </configuration>-->
-<!--                    </execution>-->
-<!--                </executions>-->
-<!--            </plugin>-->
-
-<!--            <plugin>-->
-<!--                <groupId>org.codehaus.mojo</groupId>-->
-<!--                <artifactId>exec-maven-plugin</artifactId>-->
-<!--                <version>3.6.2</version>-->
-<!--                <executions>-->
-<!--                    <execution>-->
-<!--                        <id>jlink</id>-->
-<!--                        <goals><goal>exec</goal></goals>-->
-<!--                        <configuration>-->
-<!--                            <executable>${java.home}${file.separator}bin${file.separator}jlink</executable>-->
-<!--                            <arguments>-->
-<!--                                <argument>&#45;&#45;strip-debug</argument>-->
-<!--                                <argument>&#45;&#45;no-header-files</argument>-->
-<!--                                <argument>&#45;&#45;no-man-pages</argument>-->
-<!--                                <argument>&#45;&#45;compress=2</argument>-->
-<!--                                <argument>&#45;&#45;add-modules</argument>-->
-<!--                                <argument>java.base,java.logging,java.sql,java.xml,java.naming,java.desktop,java.net.http,java.management,java.instrument,jdk.localedata,jdk.unsupported</argument>-->
-<!--                                <argument>&#45;&#45;output</argument>-->
-<!--                                <argument>${project.basedir}${file.separator}.jri</argument>-->
-<!--                            </arguments>-->
-<!--                        </configuration>-->
-<!--                    </execution>-->
-<!--                </executions>-->
-<!--            </plugin>-->
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
