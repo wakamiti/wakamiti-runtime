@@ -8,29 +8,37 @@ package es.wakamiti.service.domain.api;
 
 import io.helidon.common.configurable.ResourceException;
 
+
 /**
- * Service interface for asynchronous command execution with real-time output streaming.
+ * Service interface for asynchronous command execution with real-time
+ * output streaming.
  * 
- * <p>This service defines the contract for executing system commands asynchronously
- * while providing real-time streaming of command output to connected WebSocket clients.
- * It's designed to handle long-running commands without blocking the calling thread
- * and provides immediate feedback to clients about command submission status.</p>
+ * <p>This service defines the contract for executing system commands
+ * asynchronously while providing real-time streaming of command output
+ * to connected WebSocket clients. It's designed to handle long-running
+ * commands without blocking the calling thread and provides immediate
+ * feedback to clients about command submission status.</p>
  * 
  * <p>Key Responsibilities:</p>
  * <ul>
  *   <li>Validate and execute system commands asynchronously</li>
  *   <li>Stream command output in real-time to WebSocket clients</li>
- *   <li>Handle command lifecycle events (start, output, completion, errors)</li>
+ *   <li>Handle command lifecycle events (start, output, completion,
+ *   errors)</li>
  *   <li>Manage process resources and ensure proper cleanup</li>
  *   <li>Provide comprehensive error reporting and status updates</li>
  * </ul>
  * 
  * <p>Integration Architecture:</p>
  * <ul>
- *   <li><strong>REST Layer</strong>: CommandResource accepts HTTP requests and delegates to this service</li>
- *   <li><strong>WebSocket Layer</strong>: ExecutionSocket manages client connections for real-time updates</li>
- *   <li><strong>Streaming Layer</strong>: WebSocketAppender broadcasts execution events to connected clients</li>
- *   <li><strong>Execution Layer</strong>: This service coordinates command execution and event broadcasting</li>
+ *   <li><strong>REST Layer</strong>: CommandResource accepts HTTP
+ *   requests and delegates to this service</li>
+ *   <li><strong>WebSocket Layer</strong>: ExecutionSocket manages
+ *   client connections for real-time updates</li>
+ *   <li><strong>Streaming Layer</strong>: WebSocketAppender broadcasts
+ *   execution events to connected clients</li>
+ *   <li><strong>Execution Layer</strong>: This service coordinates
+ *   command execution and event broadcasting</li>
  * </ul>
  * 
  * <p>Execution Flow:</p>
@@ -81,8 +89,6 @@ import io.helidon.common.configurable.ResourceException;
  *     return Response.status(429).entity("Too many concurrent executions").build();
  * }
  * }</pre>
- * 
- * @author mgalbis
  */
 public interface ExecutionService {
 

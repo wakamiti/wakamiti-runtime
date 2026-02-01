@@ -37,7 +37,7 @@ public class SessionExecutionNotifier implements ExecutionNotifier<Session> {
             if (session.isOpen()) {
                 try {
                     session.close(new CloseReason(CloseReason.CloseCodes.NORMAL_CLOSURE, status.toString()));
-                } catch (IOException ignore) {
+                } catch (IOException _) {
                 }
             }
         });
