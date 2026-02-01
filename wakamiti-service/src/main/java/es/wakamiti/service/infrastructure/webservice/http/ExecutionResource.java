@@ -9,11 +9,13 @@ package es.wakamiti.service.infrastructure.webservice.http;
 import es.wakamiti.service.WakamitiServiceApplication;
 import es.wakamiti.service.domain.api.ExecutionService;
 import io.helidon.common.configurable.ResourceException;
+import io.helidon.http.NotFoundException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.OpenAPIDefinition;
@@ -55,6 +57,7 @@ import org.slf4j.LoggerFactory;
  *       doesn't need response data and should monitor execution via WebSocket.</li>
  *   <li><strong>400 Bad Request</strong>: Invalid command format or empty/null command.
  *       Indicates client-side error in request formation.</li>
+ *   <li><strong>404 Not Found</strong>: The requested command could not be found or is not available.</li>
  *   <li><strong>429 Too Many Requests</strong>: Rate limit exceeded. Prevents system
  *       overload by limiting concurrent command executions.</li>
  *   <li><strong>500 Internal Server Error</strong>: Unexpected server-side error during
@@ -68,8 +71,6 @@ import org.slf4j.LoggerFactory;
  *
  * ls -la /tmp
  * }</pre>
- *
- * @author mgalbis
  */
 @Path("/exec")
 @OpenAPIDefinition(
@@ -87,6 +88,7 @@ import org.slf4j.LoggerFactory;
                 @Tag(name = "Command Execution", description = "Operations for executing system commands asynchronously")
         }
 )
+@Tag(name = "Command Execution")
 @ApplicationScoped
 public class ExecutionResource {
 
@@ -114,6 +116,7 @@ public class ExecutionResource {
      * <ul>
      *   <li><strong>204 No Content</strong>: Command successfully submitted for execution</li>
      *   <li><strong>400 Bad Request</strong>: Invalid or empty command</li>
+     *   <li><strong>404 Not Found</strong>: Command not found</li>
      *   <li><strong>429 Too Many Requests</strong>: Rate limit exceeded</li>
      *   <li><strong>500 Internal Server Error</strong>: Server-side execution error</li>
      * </ul>
@@ -137,7 +140,9 @@ public class ExecutionResource {
      */
     @POST
     @Consumes(MediaType.TEXT_PLAIN)
+    @Produces(MediaType.TEXT_PLAIN)
     @Operation(
+            operationId = "execution",
             summary = "Execute system command asynchronously",
             description = "Submits a system command for asynchronous execution. The command output will be " +
                     "streamed in real-time through the WebSocket endpoint at '/execution'. " +
@@ -165,6 +170,20 @@ public class ExecutionResource {
                                     @ExampleObject(
                                             name = "Invalid Format Error",
                                             value = "Invalid command format"
+                                    )
+                            }
+                    )
+            ),
+            @APIResponse(
+                    responseCode = "404",
+                    description = "Command not found - The requested command is not available in the system.",
+                    content = @Content(
+                            mediaType = MediaType.TEXT_PLAIN,
+                            schema = @Schema(type = SchemaType.STRING),
+                            examples = {
+                                    @ExampleObject(
+                                            name = "Command Not Found Error",
+                                            value = "Command not found"
                                     )
                             }
                     )
@@ -221,6 +240,12 @@ public class ExecutionResource {
             // Rate limiting - too many concurrent executions
             return Response.status(Response.Status.TOO_MANY_REQUESTS)
                     .entity("Maximum concurrent executions reached. Please try again later.")
+                    .type(MediaType.TEXT_PLAIN)
+                    .build();
+        } catch (NotFoundException ex) {
+            // Not found - command does not exist
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(ex.getMessage())
                     .type(MediaType.TEXT_PLAIN)
                     .build();
         } catch (IllegalArgumentException ex) {
