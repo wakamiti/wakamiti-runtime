@@ -27,12 +27,15 @@
         <module>wakamiti-service</module>
 <!--        <module>wakamiti-systray</module>-->
         <module>wakamiti-cli</module>
+<!--        <module>wakamiti-updater</module>-->
     </modules>
 
     <properties>
         <revision>1.0.0-SNAPSHOT</revision>
 
         <jlink.skip>true</jlink.skip>
+
+        <cli.exec>${project.build.directory}${file.separator}/waka${cli.exeSuffix}</cli.exec>
     </properties>
 
     <build>
@@ -40,6 +43,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-install-plugin</artifactId>
+                <version>3.1.2</version>
                 <configuration>
                     <skip>true</skip>
                 </configuration>
@@ -47,6 +51,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
+                <version>3.2.0</version>
                 <executions>
                     <execution>
                         <id>jlink</id>
@@ -58,5 +63,39 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <!-- OS -->
+        <profile>
+            <id>goos-windows</id>
+            <activation><os><family>Windows</family></os></activation>
+            <properties>
+                <cli.goos>windows</cli.goos>
+                <cli.exeSuffix>.exe</cli.exeSuffix>
+                <bin.suffix>.zip</bin.suffix>
+            </properties>
+        </profile>
+
+        <profile>
+            <id>goos-mac</id>
+            <activation><os><family>mac</family></os></activation>
+            <properties>
+                <cli.goos>darwin</cli.goos>
+                <cli.exeSuffix/>
+                <bin.suffix>.tar.gz</bin.suffix>
+            </properties>
+        </profile>
+
+        <profile>
+            <id>goos-linux</id>
+            <activation><os><family>unix</family></os></activation>
+            <properties>
+                <cli.goos>linux</cli.goos>
+                <cli.exeSuffix/>
+                <bin.suffix>.tar.gz</bin.suffix>
+            </properties>
+        </profile>
+
+    </profiles>
 
 </project>
