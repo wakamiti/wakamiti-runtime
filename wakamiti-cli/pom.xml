@@ -143,6 +143,7 @@
                 </plugins>
             </build>
         </profile>
+
         <profile>
             <id>skip-test</id>
             <activation>
