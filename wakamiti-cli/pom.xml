@@ -57,6 +57,7 @@
                             <goal>execute</goal>
                         </goals>
                         <configuration>
+                            <skip>${maven.test.skip}</skip>
                             <logFileStd>${project.build.directory}${file.separator}coverage.out</logFileStd>
                             <args>
                                 <arg>test</arg>
@@ -73,6 +74,7 @@
                             <goal>execute</goal>
                         </goals>
                         <configuration>
+                            <skip>${maven.test.skip}</skip>
                             <args>
                                 <arg>test</arg>
                                 <arg>./internal/...</arg>
@@ -141,89 +143,18 @@
                 </plugins>
             </build>
         </profile>
-        <!--        <profile>-->
-        <!--            <id>go-mod-init</id>-->
-        <!--            <activation>-->
-        <!--                <file>-->
-        <!--                    <missing>go.mod</missing>-->
-        <!--                </file>-->
-        <!--            </activation>-->
-        <!--            <build>-->
-        <!--                <plugins>-->
-        <!--                    <plugin>-->
-        <!--                        <groupId>com.igormaznitsa</groupId>-->
-        <!--                        <artifactId>gosdk-wrapper-maven-plugin</artifactId>-->
-        <!--                        <version>${go.mvn.version}</version>-->
-        <!--                        <configuration>-->
-        <!--                            <goVersion>${go.sdk.version}</goVersion>-->
-        <!--                            <storeFolder>${go.bin}</storeFolder>-->
-        <!--                            <workDir>${project.basedir}</workDir>-->
-        <!--                            <env>-->
-        <!--                                <GOBIN>${go.bin}</GOBIN>-->
-        <!--                                <GOPATH>${go.bin}</GOPATH>-->
-        <!--                            </env>-->
-        <!--                        </configuration>-->
-        <!--                        <executions>-->
-        <!--                            <execution>-->
-        <!--                                <id>go-init-mod</id>-->
-        <!--                                <phase>initialize</phase>-->
-        <!--                                <goals>-->
-        <!--                                    <goal>execute</goal>-->
-        <!--                                </goals>-->
-        <!--                                <configuration>-->
-        <!--                                    <args>-->
-        <!--                                        <arg>mod</arg>-->
-        <!--                                        <arg>init</arg>-->
-        <!--                                        <arg>${project.groupId}/${project.artifactId}</arg>-->
-        <!--                                    </args>-->
-        <!--                                </configuration>-->
-        <!--                            </execution>-->
-        <!--                        </executions>-->
-        <!--                    </plugin>-->
-        <!--                </plugins>-->
-        <!--            </build>-->
-        <!--        </profile>-->
-        <!--        <profile>-->
-        <!--            <id>go-mod-tidy</id>-->
-        <!--            <activation>-->
-        <!--                <file>-->
-        <!--                    <missing>go.sum</missing>-->
-        <!--                </file>-->
-        <!--            </activation>-->
-        <!--            <build>-->
-        <!--                <plugins>-->
-        <!--                    <plugin>-->
-        <!--                        <groupId>com.igormaznitsa</groupId>-->
-        <!--                        <artifactId>gosdk-wrapper-maven-plugin</artifactId>-->
-        <!--                        <version>${go.mvn.version}</version>-->
-        <!--                        <configuration>-->
-        <!--                            <goVersion>${go.sdk.version}</goVersion>-->
-        <!--                            <storeFolder>${go.bin}</storeFolder>-->
-        <!--                            <workDir>${project.basedir}</workDir>-->
-        <!--                            <env>-->
-        <!--                                <GOBIN>${go.bin}</GOBIN>-->
-        <!--                                <GOPATH>${go.bin}</GOPATH>-->
-        <!--                            </env>-->
-        <!--                        </configuration>-->
-        <!--                        <executions>-->
-        <!--                            <execution>-->
-        <!--                                <id>go-tidy</id>-->
-        <!--                                <phase>initialize</phase>-->
-        <!--                                <goals>-->
-        <!--                                    <goal>execute</goal>-->
-        <!--                                </goals>-->
-        <!--                                <configuration>-->
-        <!--                                    <args>-->
-        <!--                                        <arg>mod</arg>-->
-        <!--                                        <arg>tidy</arg>-->
-        <!--                                    </args>-->
-        <!--                                </configuration>-->
-        <!--                            </execution>-->
-        <!--                        </executions>-->
-        <!--                    </plugin>-->
-        <!--                </plugins>-->
-        <!--            </build>-->
-        <!--        </profile>-->
+        <profile>
+            <id>skip-test</id>
+            <activation>
+                <property>
+                    <name>skipTests</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <properties>
+                <maven.test.skip>true</maven.test.skip>
+            </properties>
+        </profile>
     </profiles>
 
 </project>
