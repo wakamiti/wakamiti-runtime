@@ -16,6 +16,9 @@
 
     <artifactId>wakamiti-service</artifactId>
 
+    <name>Wakamiti Service</name>
+    <description>Wakamiti background service, built with Helidon MP.</description>
+
     <properties>
         <helidon.version>4.3.3</helidon.version>
         <logback.version>1.5.27</logback.version>

@@ -17,6 +17,9 @@
     <artifactId>wakamiti-cli</artifactId>
     <packaging>pom</packaging>
 
+    <name>Wakamiti CLI</name>
+    <description>Wakamiti command-line interface (CLI) module, built with Go.</description>
+
     <properties>
         <cli.command>waka</cli.command>
 
