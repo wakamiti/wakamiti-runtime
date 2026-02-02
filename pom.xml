@@ -33,8 +33,6 @@
     <properties>
         <revision>1.0.0-SNAPSHOT</revision>
 
-        <jlink.skip>true</jlink.skip>
-
         <cli.exec>${project.build.directory}${file.separator}/waka${cli.exeSuffix}</cli.exec>
     </properties>
 
@@ -55,19 +53,6 @@
                 <configuration>
                     <skip>true</skip>
                 </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>3.2.0</version>
-                <executions>
-                    <execution>
-                        <id>jlink</id>
-                        <configuration>
-                            <skip>${jlink.skip}</skip>
-                        </configuration>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
     </build>
