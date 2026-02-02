@@ -8,7 +8,6 @@ package main
 
 import (
 	"context"
-	"flag"
 	"os"
 	"os/signal"
 	"syscall"
@@ -18,15 +17,22 @@ import (
 )
 
 func main() {
+	// Set up context with signal notification.
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	// The stop function must be called to release resources, and defer ensures it runs.
+	defer stop()
+	exitCode := run(ctx)
+	os.Exit(exitCode)
+}
+
+// run contains the core application logic and returns an exit code.
+func run(ctx context.Context) int {
 	conf := config.Config{
-		ServiceHost: config.Getenv("WAKAMITI_HOST", "localhost"),
-		ServicePort: config.Getenv("WAKAMITI_POST", "7264"),
+		ServiceHost: config.Getenv("WAKAMITI_HOST", "127.0.0.1"),
+		ServicePort: config.Getenv("WAKAMITI_PORT", "7264"),
 	}
 	cli := client.Client{Config: conf}
 
-	// Connect to WS and stream progress. Ctrl+C sends STOP.
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
-
-	os.Exit(cli.Run(ctx, flag.Args()))
+	// Pass the cancellable context to the client.
+	return cli.Run(ctx, os.Args[1:])
 }

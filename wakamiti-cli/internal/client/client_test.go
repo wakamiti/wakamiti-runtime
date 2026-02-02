@@ -41,7 +41,7 @@ func TestDoPostText_SendsPlainTextBody(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	if err := client.DoPostText(srv.URL, wantBody); err != nil {
+	if err := client.DoPostText(context.Background(), srv.URL, wantBody); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
@@ -53,14 +53,14 @@ func TestDoPostText_Non2xxFails(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	if err := client.DoPostText(srv.URL, "x"); err == nil {
+	if err := client.DoPostText(context.Background(), srv.URL, "x"); err == nil {
 		t.Fatal("expected error, got nil")
 	}
 }
 
 func TestDoPostText_NetworkError(t *testing.T) {
 	client := &Client{}
-	if err := client.DoPostText("http://localhost:1", "x"); err == nil {
+	if err := client.DoPostText(context.Background(), "http://localhost:1", "x"); err == nil {
 		t.Fatal("expected error, got nil")
 	}
 }

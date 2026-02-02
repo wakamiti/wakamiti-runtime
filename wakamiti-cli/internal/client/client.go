@@ -16,7 +16,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"es.wakamiti/wakamiti-cli/internal/config"
@@ -36,29 +35,35 @@ func (c *Client) Run(ctx context.Context, args []string) int {
 	wsURL := fmt.Sprintf("ws://%s:%s/exec", c.Config.ServiceHost, c.Config.ServicePort)
 
 	// 1) Asynchronous POST (we don't wait for result, but validate status)
-	if err := c.DoPostText(postURL, bodyTxt); err != nil {
-		fmt.Fprintf(os.Stderr, "Error starting execution: %v\n", err)
+	if err := c.DoPostText(ctx, postURL, bodyTxt); err != nil {
+		if !errors.Is(err, context.Canceled) {
+			fmt.Fprintf(os.Stderr, "Error starting execution: %v\n", err)
+		}
 		return 255
 	}
 
 	// 2) Connect to WS and stream progress.
 	exitCode, err := c.StreamWS(ctx, wsURL)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Stream error: %v\n", err)
-		return 3
+		// A nil error with a non-zero exit code is a valid scenario (e.g., script returns non-zero).
+		// Any other error should be printed, unless it's a context cancellation.
+		if !errors.Is(err, context.Canceled) {
+			fmt.Fprintf(os.Stderr, "Stream error: %v\n", err)
+			return 3 // Return code 3 for stream errors, as expected by tests.
+		}
 	}
 	return exitCode
 }
 
 // DoPostText sends a POST request with plain text body to the specified URL.
-func (c *Client) DoPostText(url, body string) error {
-	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBufferString(body))
+func (c *Client) DoPostText(ctx context.Context, url, body string) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBufferString(body))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 	req.Header.Set("Content-Type", "text/plain; charset=utf-8")
 
-	httpClient := &http.Client{Timeout: 15 * time.Second}
+	httpClient := &http.Client{}
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("request failed: %w", err)
@@ -73,34 +78,47 @@ func (c *Client) DoPostText(url, body string) error {
 }
 
 // StreamWS connects to a WebSocket URL and prints received messages to stdout.
-// It returns the exit code provided by the server or an error.
 func (c *Client) StreamWS(ctx context.Context, wsURL string) (int, error) {
 	d := websocket.Dialer{HandshakeTimeout: 10 * time.Second}
-	conn, _, err := d.Dial(wsURL, nil)
+	conn, _, err := d.DialContext(ctx, wsURL, nil)
 	if err != nil {
-		return 0, fmt.Errorf("failed to connect to WebSocket: %w", err)
+		return 1, fmt.Errorf("failed to connect to WebSocket: %w", err)
 	}
 	defer conn.Close()
 
-	// Handle graceful shutdown on context cancellation (e.g., Ctrl+C)
-	var once sync.Once
+	resultChan := make(chan struct {
+		exitCode int
+		err      error
+	}, 1)
+
 	go func() {
-		<-ctx.Done()
-		once.Do(func() {
-			fmt.Fprintln(os.Stderr, "> Stop request sent. The application will stop when the server closes the session.")
-		})
-		//_ = conn.SetWriteDeadline(time.Now().Add(2 * time.Second))
-		_ = conn.WriteMessage(websocket.TextMessage, []byte("STOP"))
+		for {
+			_, msg, err := conn.ReadMessage()
+			if err != nil {
+				exitCode, streamErr := c.HandleServerClose(err)
+				resultChan <- struct {
+					exitCode int
+					err      error
+				}{exitCode, streamErr}
+				return
+			}
+			if text := strings.TrimSpace(string(msg)); text != "" {
+				fmt.Println(text)
+			}
+		}
 	}()
 
-	for {
-		_, msg, err := conn.ReadMessage()
-		if err != nil {
-			return c.HandleServerClose(err)
-		}
-
-		if text := strings.TrimSpace(string(msg)); text != "" {
-			fmt.Println(text)
+	select {
+	case res := <-resultChan:
+		return res.exitCode, res.err
+	case <-ctx.Done():
+		fmt.Fprintln(os.Stderr, "> Stop request sent. The application will stop when the server closes the session.")
+		_ = conn.WriteMessage(websocket.TextMessage, []byte("STOP"))
+		select {
+		case res := <-resultChan:
+			return res.exitCode, res.err
+		case <-time.After(3 * time.Second):
+			return 1, context.Canceled
 		}
 	}
 }
@@ -108,20 +126,16 @@ func (c *Client) StreamWS(ctx context.Context, wsURL string) (int, error) {
 // HandleServerClose interprets the WebSocket closure error to extract an exit code or error message.
 func (c *Client) HandleServerClose(err error) (int, error) {
 	var ce *websocket.CloseError
-	if !errors.As(err, &ce) {
-		return 1, err
+	if errors.As(err, &ce) {
+		reason := strings.TrimSpace(ce.Text)
+		if n, err := strconv.Atoi(reason); err == nil {
+			return n, nil
+		}
+		if reason != "" {
+			return 1, errors.New(reason)
+		}
+		// Restore original behavior for empty reason to match test expectation.
+		return 1, errors.New("websocket closed by unknown reason")
 	}
-
-	reason := strings.TrimSpace(ce.Text)
-
-	// If the reason is numeric, use it as the exit code
-	if n, err := strconv.Atoi(reason); err == nil {
-		return n, nil
-	}
-
-	// If the reason is not numeric, treat it as an error message
-	if reason == "" {
-		reason = "websocket closed by unknown reason"
-	}
-	return 1, errors.New(reason)
+	return 1, err
 }
