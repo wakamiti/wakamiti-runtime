@@ -3,12 +3,13 @@ on:
   push:
     branches: [develop]
     paths:
-      - 'src/**'
-      - 'go.mod'
-      - 'pom.xml'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'yarn.lock'
+      - '**/src/**'
+      - '**/*.go'
+      - '**/go.mod'
+      - '**/pom.xml'
+      - '**/package.json'
+      - '**/package-lock.json'
+      - '**/yarn.lock'
 jobs:
   config_maven:
     name: Maven Configuration
