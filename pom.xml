@@ -33,6 +33,8 @@
     <properties>
         <revision>1.0.0-SNAPSHOT</revision>
 
+        <jlink.skip>true</jlink.skip>
+
         <cli.exec>${project.build.directory}${file.separator}/waka${cli.exeSuffix}</cli.exec>
     </properties>
 
