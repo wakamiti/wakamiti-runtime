@@ -34,8 +34,6 @@ import es.wakamiti.service.domain.spi.LogEventPublisher;
  *   <PatternLayout pattern="%msg%n"/>
  * </WebSocketAppender>
  * }</pre>
- * 
- * @author mgalbis
  */
 public class WebSocketAppender extends AppenderBase<ILoggingEvent> {
 
