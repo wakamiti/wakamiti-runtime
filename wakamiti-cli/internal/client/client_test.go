@@ -53,14 +53,14 @@ func TestDoPostText_Non2xxFails(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	if err := client.DoPostText(context.Background(), srv.URL, "x"); err == nil {
+	if client.DoPostText(context.Background(), srv.URL, "x") == nil {
 		t.Fatal("expected error, got nil")
 	}
 }
 
 func TestDoPostText_NetworkError(t *testing.T) {
 	client := &Client{}
-	if err := client.DoPostText(context.Background(), "http://localhost:1", "x"); err == nil {
+	if client.DoPostText(context.Background(), "http://localhost:1", "x") == nil {
 		t.Fatal("expected error, got nil")
 	}
 }
