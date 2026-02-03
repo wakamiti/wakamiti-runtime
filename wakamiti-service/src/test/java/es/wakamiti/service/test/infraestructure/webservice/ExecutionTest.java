@@ -36,7 +36,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 
 @HelidonTest
-public class ExecutionTest {
+class ExecutionTest {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("system");
     private static final LinkedBlockingDeque<String> MESSAGES = new LinkedBlockingDeque<>();
@@ -49,12 +49,12 @@ public class ExecutionTest {
     private URI uri;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         uri = URI.create("ws://%s:%s/exec".formatted(target.getUri().getHost(), target.getUri().getPort()));
     }
 
     @AfterEach
-    public void shutdown() {
+    void shutdown() {
         MESSAGES.clear();
         STATUS.set(99);
     }
@@ -119,7 +119,7 @@ public class ExecutionTest {
                 .post(Entity.entity("abc", MediaType.TEXT_PLAIN_TYPE))) {
             assertThat(response.getStatus(), is(204));
         }
-        Thread.sleep(Duration.ofSeconds(1));
+        await().pollDelay(Duration.ofSeconds(1)).until(() -> true);
         try (Response response = target
                 .path("exec")
                 .request()
@@ -147,7 +147,7 @@ public class ExecutionTest {
 
     @DisplayName("Execution Socket when send STOP with success")
     @Test
-    public void testExecutionSocketWhenSendStopWithSuccess() throws Exception {
+    void testExecutionSocketWhenSendStopWithSuccess() throws Exception {
         try (Response response = target
                 .path("exec")
                 .request()
@@ -175,7 +175,7 @@ public class ExecutionTest {
 
     @DisplayName("Execution Socket when send invalid message with success")
     @Test
-    public void testExecutionSocketWhenSendInvalidMessageWithSuccess() throws Exception {
+    void testExecutionSocketWhenSendInvalidMessageWithSuccess() throws Exception {
         try (Session session = ContainerProvider.getWebSocketContainer().connectToServer(Client.class, uri)) {
             session.getBasicRemote().sendText("ABC");
             assertEquals("Invalid message received: ABC", MESSAGES.poll(10, TimeUnit.SECONDS));
@@ -191,9 +191,9 @@ public class ExecutionTest {
     public static class Client {
 
         @OnOpen
-        public void open(Session session) throws InterruptedException {
+        public void open(Session session) {
             LOGGER.trace("Opening client session {}", session.getId());
-            Thread.sleep(TimeUnit.SECONDS.toMillis(1));
+            await().pollDelay(1, TimeUnit.SECONDS).until(() -> true);
         }
 
         @OnMessage
@@ -211,7 +211,7 @@ public class ExecutionTest {
         public void onClose(
                 Session session,
                 CloseReason reason
-        ) throws InterruptedException {
+        ) {
             LOGGER.trace("Closing client session {}: {} - {}",
                          session.getId(), reason.getCloseCode(), reason.getReasonPhrase());
             if (!reason.getCloseCode().equals(CloseReason.CloseCodes.NORMAL_CLOSURE)) {
@@ -219,7 +219,7 @@ public class ExecutionTest {
             } else {
                 STATUS.set(Integer.parseInt(reason.getReasonPhrase()));
             }
-            Thread.sleep(TimeUnit.SECONDS.toMillis(1));
+            await().pollDelay(1, TimeUnit.SECONDS).until(() -> true);
         }
     }
 
