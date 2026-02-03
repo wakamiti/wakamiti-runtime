@@ -21,27 +21,27 @@ public class InMemoryLogHistoryRepository implements LogHistoryRepository {
     /**
      * Thread-safe deque for storing log messages in chronological order.
      */
-    private final Deque<String> BUFFER = new ConcurrentLinkedDeque<>();
+    private final Deque<String> buffer = new ConcurrentLinkedDeque<>();
 
     @Override
     public void save(
             String message
     ) {
-        BUFFER.addLast(message);
+        buffer.addLast(message);
     }
 
     @Override
     public List<String> find() {
-        return new ArrayList<>(BUFFER);
+        return new ArrayList<>(buffer);
     }
 
     @Override
     public void clear() {
-        BUFFER.clear();
+        buffer.clear();
     }
 
     @Override
     public int size() {
-        return BUFFER.size();
+        return buffer.size();
     }
 }

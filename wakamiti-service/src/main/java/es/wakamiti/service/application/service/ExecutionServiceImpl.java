@@ -27,12 +27,20 @@ public class ExecutionServiceImpl implements ExecutionService {
 
     private final AtomicBoolean running = new AtomicBoolean(false);
 
+    private final ExecutionNotifier<?> notifier;
+    private final WakamitiRunner runner;
+    private final LogEventPublisher<?> publisher;
+
     @Inject
-    private ExecutionNotifier<?> notifier;
-    @Inject
-    private WakamitiRunner runner;
-    @Inject
-    private LogEventPublisher<?> publisher;
+    public ExecutionServiceImpl(
+            ExecutionNotifier<?> notifier,
+            WakamitiRunner runner,
+            LogEventPublisher<?> publisher
+    ) {
+        this.notifier = notifier;
+        this.runner = runner;
+        this.publisher = publisher;
+    }
 
 
     /**
@@ -65,7 +73,7 @@ public class ExecutionServiceImpl implements ExecutionService {
         CompletableFuture.supplyAsync(() -> runner.run(command))
                 .thenAccept(notifier::notify)
                 .thenRun(() -> running.set(false))
-                .thenRun(() -> publisher.clear())
+                .thenRun(publisher::clear)
         ;
     }
 

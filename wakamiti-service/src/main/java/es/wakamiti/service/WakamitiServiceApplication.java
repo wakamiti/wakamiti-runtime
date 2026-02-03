@@ -21,6 +21,10 @@ public class WakamitiServiceApplication {
 
     public static final String NAME = "service.wakamiti";
 
+    private WakamitiServiceApplication() {
+        // Private constructor
+    }
+
     static void main() {
         // Fix for the Service Registry exception regarding java.lang.Cloneable
         // This prevents the registry from failing when encountering standard marker interfaces

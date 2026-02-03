@@ -21,8 +21,14 @@ import java.util.Objects;
 @ApplicationScoped
 public class Log4j2Configurator {
 
+    private final SessionLogEventPublisher publisher;
+
     @Inject
-    private SessionLogEventPublisher publisher;
+    public Log4j2Configurator(
+            SessionLogEventPublisher publisher
+    ) {
+        this.publisher = publisher;
+    }
 
     public void initialize(
             @Observes @Initialized(ApplicationScoped.class) Object init

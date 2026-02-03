@@ -6,12 +6,15 @@
 package es.wakamiti.service.infrastructure.logging;
 
 
+import es.wakamiti.service.WakamitiServiceApplication;
 import es.wakamiti.service.domain.spi.LogEventPublisher;
 import es.wakamiti.service.domain.model.LogEventSubscriber;
 import es.wakamiti.service.domain.spi.LogHistoryRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.websocket.Session;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -20,12 +23,19 @@ import java.util.concurrent.ConcurrentHashMap;
 @ApplicationScoped
 public class SessionLogEventPublisher implements LogEventPublisher<Session> {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(WakamitiServiceApplication.NAME);
+
     private final Map<Session, LogEventSubscriber> subscribers = new ConcurrentHashMap<>();
     private final Map<Session, Object> sessionLocks = new ConcurrentHashMap<>();
 
-    @Inject
-    private LogHistoryRepository history;
+    private final LogHistoryRepository history;
 
+    @Inject
+    public SessionLogEventPublisher(
+            LogHistoryRepository history
+    ) {
+        this.history = history;
+    }
 
     @Override
     public void subscribe(
@@ -48,8 +58,8 @@ public class SessionLogEventPublisher implements LogEventPublisher<Session> {
             synchronized (sessionLocks.computeIfAbsent(session, _ -> new Object())) {
                 try {
                     session.getAsyncRemote().sendText(message);
-                } catch (Exception e) {
-                    System.err.println("WARN: Unable to send message: " + message);
+                } catch (Exception _) {
+                    LOGGER.error("WARN: Unable to send message: {}", message);
                 }
             }
         }

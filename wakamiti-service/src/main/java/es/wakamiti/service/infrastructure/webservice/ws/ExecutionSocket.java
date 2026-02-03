@@ -39,14 +39,19 @@ public class ExecutionSocket {
     private static final Logger LOGGER = LoggerFactory.getLogger(WakamitiServiceApplication.NAME);
     private static final String STOP = "STOP";
 
-    @Inject
-    private ExecutionService service;
-    @Inject
-    private LogEventPublisher<Session> publisher;
-    @Inject
-    private ExecutionNotifier<Session> notifier;
+    private final ExecutionService service;
+    private final LogEventPublisher<Session> publisher;
+    private final ExecutionNotifier<Session> notifier;
 
-    public ExecutionSocket() {
+    @Inject
+    public ExecutionSocket(
+            ExecutionService service,
+            LogEventPublisher<Session> publisher,
+            ExecutionNotifier<Session> notifier
+    ) {
+        this.service = service;
+        this.publisher = publisher;
+        this.notifier = notifier;
         LOGGER.trace("WebSocket created");
     }
 

@@ -38,6 +38,7 @@ public class SessionExecutionNotifier implements ExecutionNotifier<Session> {
                 try {
                     session.close(new CloseReason(CloseReason.CloseCodes.NORMAL_CLOSURE, status.toString()));
                 } catch (IOException _) {
+                    // Ignore exception
                 }
             }
         });

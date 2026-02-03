@@ -28,7 +28,6 @@ import org.eclipse.microprofile.openapi.annotations.media.ExampleObject;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
-import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -98,10 +97,13 @@ public class ExecutionResource {
      * Service responsible for handling asynchronous command execution.
      * Injected via CDI to ensure proper lifecycle management and thread safety.
      */
-    @Inject
-    private ExecutionService executionService;
+    private final ExecutionService executionService;
 
-    public ExecutionResource() {
+    @Inject
+    public ExecutionResource(
+            ExecutionService executionService
+    ) {
+        this.executionService = executionService;
         LOGGER.trace("Iniciando execution resource");
     }
 
@@ -132,9 +134,7 @@ public class ExecutionResource {
      * </ul>
      *
      * @param command the system command to execute (plain text format)
-     *
      * @return HTTP response indicating submission status
-     *
      * @throws IllegalArgumentException if command is null, empty, or invalid
      * @see ExecutionService#execute(String)
      */
@@ -148,77 +148,75 @@ public class ExecutionResource {
                     "streamed in real-time through the WebSocket endpoint at '/execution'. " +
                     "Common commands include shell commands, scripts, or system utilities."
     )
-    @APIResponses({
-            @APIResponse(
-                    responseCode = "204",
-                    description = "Command successfully submitted for asynchronous execution. " +
-                            "Monitor execution progress and output via WebSocket at '/execution'.",
-                    content = @Content()
-            ),
-            @APIResponse(
-                    responseCode = "400",
-                    description = "Bad Request - Invalid command format, empty command, or malformed request. " +
-                            "Ensure the command is provided as plain text in the request body.",
-                    content = @Content(
-                            mediaType = MediaType.TEXT_PLAIN,
-                            schema = @Schema(type = SchemaType.STRING),
-                            examples = {
-                                    @ExampleObject(
-                                            name = "Empty Command Error",
-                                            value = "Command cannot be null or empty"
-                                    ),
-                                    @ExampleObject(
-                                            name = "Invalid Format Error",
-                                            value = "Invalid command format"
-                                    )
-                            }
-                    )
-            ),
-            @APIResponse(
-                    responseCode = "404",
-                    description = "Command not found - The requested command is not available in the system.",
-                    content = @Content(
-                            mediaType = MediaType.TEXT_PLAIN,
-                            schema = @Schema(type = SchemaType.STRING),
-                            examples = {
-                                    @ExampleObject(
-                                            name = "Command Not Found Error",
-                                            value = "Command not found"
-                                    )
-                            }
-                    )
-            ),
-            @APIResponse(
-                    responseCode = "429",
-                    description = "Too Many Requests - Rate limit exceeded. The system is currently processing " +
-                            "the maximum number of concurrent commands. Please wait and try again.",
-                    content = @Content(
-                            mediaType = MediaType.TEXT_PLAIN,
-                            schema = @Schema(type = SchemaType.STRING),
-                            examples = {
-                                    @ExampleObject(
-                                            name = "Rate Limit Error",
-                                            value = "Maximum concurrent executions reached. Please try again later."
-                                    )
-                            }
-                    )
-            ),
-            @APIResponse(
-                    responseCode = "500",
-                    description = "Internal Server Error - Unexpected error occurred during command submission. " +
-                            "This may indicate system resource issues or internal service failures.",
-                    content = @Content(
-                            mediaType = MediaType.TEXT_PLAIN,
-                            schema = @Schema(type = SchemaType.STRING),
-                            examples = {
-                                    @ExampleObject(
-                                            name = "System Error",
-                                            value = "Failed to submit command for execution due to system error"
-                                    )
-                            }
-                    )
+    @APIResponse(
+            responseCode = "204",
+            description = "Command successfully submitted for asynchronous execution. " +
+                    "Monitor execution progress and output via WebSocket at '/execution'.",
+            content = @Content()
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Bad Request - Invalid command format, empty command, or malformed request. " +
+                    "Ensure the command is provided as plain text in the request body.",
+            content = @Content(
+                    mediaType = MediaType.TEXT_PLAIN,
+                    schema = @Schema(type = SchemaType.STRING),
+                    examples = {
+                            @ExampleObject(
+                                    name = "Empty Command Error",
+                                    value = "Command cannot be null or empty"
+                            ),
+                            @ExampleObject(
+                                    name = "Invalid Format Error",
+                                    value = "Invalid command format"
+                            )
+                    }
             )
-    })
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Command not found - The requested command is not available in the system.",
+            content = @Content(
+                    mediaType = MediaType.TEXT_PLAIN,
+                    schema = @Schema(type = SchemaType.STRING),
+                    examples = {
+                            @ExampleObject(
+                                    name = "Command Not Found Error",
+                                    value = "Command not found"
+                            )
+                    }
+            )
+    )
+    @APIResponse(
+            responseCode = "429",
+            description = "Too Many Requests - Rate limit exceeded. The system is currently processing " +
+                    "the maximum number of concurrent commands. Please wait and try again.",
+            content = @Content(
+                    mediaType = MediaType.TEXT_PLAIN,
+                    schema = @Schema(type = SchemaType.STRING),
+                    examples = {
+                            @ExampleObject(
+                                    name = "Rate Limit Error",
+                                    value = "Maximum concurrent executions reached. Please try again later."
+                            )
+                    }
+            )
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal Server Error - Unexpected error occurred during command submission. " +
+                    "This may indicate system resource issues or internal service failures.",
+            content = @Content(
+                    mediaType = MediaType.TEXT_PLAIN,
+                    schema = @Schema(type = SchemaType.STRING),
+                    examples = {
+                            @ExampleObject(
+                                    name = "System Error",
+                                    value = "Failed to submit command for execution due to system error"
+                            )
+                    }
+            )
+    )
     public Response execute(
             @RequestBody(
                     description = "The system command to execute. Provide the complete command as plain text, " +
@@ -236,7 +234,7 @@ public class ExecutionResource {
 
         try {
             executionService.execute(command);
-        } catch (ResourceException ex) {
+        } catch (ResourceException _) {
             // Rate limiting - too many concurrent executions
             return Response.status(Response.Status.TOO_MANY_REQUESTS)
                     .entity("Maximum concurrent executions reached. Please try again later.")

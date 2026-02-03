@@ -32,7 +32,7 @@ import static org.assertj.core.api.Assertions.assertThat;
         packages = "es.wakamiti.service",
         importOptions = ImportOption.DoNotIncludeTests.class
 )
-public class ArchitectureTest {
+class ArchitectureTest {
 
     /**
      * Verifies the layered architecture of the project.

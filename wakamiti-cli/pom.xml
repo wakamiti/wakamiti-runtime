@@ -28,7 +28,7 @@
         <go.bin>${project.basedir}${file.separator}.go</go.bin>
 
         <sonar.sources>${project.basedir}</sonar.sources>
-        <sonar.exclusions>**/*_test.go,**/vendor/**</sonar.exclusions>
+        <sonar.exclusions>**/*_test.go,**/vendor/**,**/cmd/**</sonar.exclusions>
         <sonar.tests>${project.basedir}${file.separator}internal</sonar.tests>
         <sonar.test.inclusions>**/*_test.go</sonar.test.inclusions>
         <sonar.test.exclusions>**/vendor/**</sonar.test.exclusions>

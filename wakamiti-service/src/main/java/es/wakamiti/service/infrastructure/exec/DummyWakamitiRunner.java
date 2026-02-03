@@ -18,7 +18,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @ApplicationScoped
 public class DummyWakamitiRunner implements WakamitiRunner {
 
-    private static final Logger LOGGER =  LoggerFactory.getLogger("es.wakamiti.core");
+    private static final Logger LOGGER = LoggerFactory.getLogger("es.wakamiti.core");
 
     private final AtomicBoolean started = new AtomicBoolean(false);
 
@@ -42,7 +42,8 @@ public class DummyWakamitiRunner implements WakamitiRunner {
             }
             LOGGER.info("Si se ha cancelado la ejecución, esta línea no debería salir");
             Thread.sleep(Duration.ofSeconds(1));
-        } catch (InterruptedException ignore) {
+        } catch (InterruptedException _) {
+            Thread.currentThread().interrupt();
             return -1;
         }
 
