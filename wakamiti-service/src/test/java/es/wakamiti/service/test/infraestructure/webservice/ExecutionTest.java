@@ -77,7 +77,7 @@ class ExecutionTest {
                 .path("exec")
                 .request()
                 .post(Entity.entity("run something", MediaType.TEXT_PLAIN_TYPE))) {
-            assertThat(response.getStatus(), is(204));
+            assertThat(response.getStatus(), is(202));
             try (Session session = ContainerProvider.getWebSocketContainer().connectToServer(Client.class, uri)) {
                 try {
                     assertEquals("Ejecutando comando: run something" + System.lineSeparator(),
@@ -117,7 +117,7 @@ class ExecutionTest {
                 .path("exec")
                 .request()
                 .post(Entity.entity("abc", MediaType.TEXT_PLAIN_TYPE))) {
-            assertThat(response.getStatus(), is(204));
+            assertThat(response.getStatus(), is(202));
         }
         await().pollDelay(Duration.ofSeconds(1)).until(() -> true);
         try (Response response = target
@@ -152,7 +152,7 @@ class ExecutionTest {
                 .path("exec")
                 .request()
                 .post(Entity.entity("run something", MediaType.TEXT_PLAIN_TYPE))) {
-            assertThat(response.getStatus(), is(204));
+            assertThat(response.getStatus(), is(202));
             try (Session session = ContainerProvider.getWebSocketContainer()
                     .connectToServer(Client.class, uri)) {
                 try {

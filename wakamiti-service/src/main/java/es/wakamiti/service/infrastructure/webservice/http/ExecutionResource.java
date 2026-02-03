@@ -51,7 +51,7 @@ import org.slf4j.LoggerFactory;
  *
  * <p>HTTP Status Codes Explained:</p>
  * <ul>
- *   <li><strong>204 No Content</strong>: Command was successfully submitted for execution.
+ *   <li><strong>202 Accepted</strong>: Command was successfully submitted for execution.
  *       This is the appropriate response for asynchronous operations where the client
  *       doesn't need response data and should monitor execution via WebSocket.</li>
  *   <li><strong>400 Bad Request</strong>: Invalid command format or empty/null command.
@@ -116,7 +116,7 @@ public class ExecutionResource {
      *
      * <p>The method implements proper error handling and returns appropriate HTTP status codes:</p>
      * <ul>
-     *   <li><strong>204 No Content</strong>: Command successfully submitted for execution</li>
+     *   <li><strong>202 Accepted</strong>: Command successfully submitted for execution</li>
      *   <li><strong>400 Bad Request</strong>: Invalid or empty command</li>
      *   <li><strong>404 Not Found</strong>: Command not found</li>
      *   <li><strong>429 Too Many Requests</strong>: Rate limit exceeded</li>
@@ -124,7 +124,7 @@ public class ExecutionResource {
      * </ul>
      *
      * <p>Concurrency Design Decision:</p>
-     * <p>The choice to return 204 No Content immediately after command submission is deliberate
+     * <p>The choice to return 202 Accepted immediately after command submission is deliberate
      * and follows best practices for asynchronous APIs. This approach provides several benefits:</p>
      * <ul>
      *   <li>Non-blocking client interaction - clients don't wait for command completion</li>
@@ -149,7 +149,7 @@ public class ExecutionResource {
                     "Common commands include shell commands, scripts, or system utilities."
     )
     @APIResponse(
-            responseCode = "204",
+            responseCode = "202",
             description = "Command successfully submitted for asynchronous execution. " +
                     "Monitor execution progress and output via WebSocket at '/execution'.",
             content = @Content()
@@ -260,7 +260,7 @@ public class ExecutionResource {
                     .build();
         }
 
-        return Response.noContent().build();
+        return Response.accepted().build();
     }
 
 }
