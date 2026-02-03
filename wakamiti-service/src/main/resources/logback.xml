@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+
+    <appender name="WS" class="es.wakamiti.service.infrastructure.logging.WebSocketAppender">
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>INFO</level>
+        </filter>
+        <layout class="ch.qos.logback.classic.PatternLayout">
+            <pattern>%msg%n</pattern>
+        </layout>
+    </appender>
+
+    <appender name="Console" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>[%d{HH:mm:ss}] %-5level %logger - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <logger name="service.wakamiti" level="trace">
+        <appender-ref ref="Console"/>
+    </logger>
+    <logger name="es.wakamiti">
+        <appender-ref ref="WS" level="info"/>
+        <appender-ref ref="Console" level="trace"/>
+    </logger>
+    <logger name="io.helidon" level="info">
+        <appender-ref ref="Console"/>
+    </logger>
+    <logger name="io.helidon.microprofile.openapi" level="off">
+        <appender-ref ref="Console"/>
+    </logger>
+
+    <root level="trace"/>
+</Configuration>
