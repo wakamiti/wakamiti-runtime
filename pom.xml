@@ -21,7 +21,7 @@
 
     <!-- additional information -->
     <name>Wakamiti Runtime</name>
-    <description>Wakamiti Runtime parent POM, manages service and CLI modules.</description>
+    <description>Execution engine for the Wakamiti testing platform.</description>
 
     <modules>
         <module>wakamiti-service</module>

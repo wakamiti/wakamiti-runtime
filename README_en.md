@@ -1,6 +1,9 @@
 # wakamiti-services
 
-Wakamiti Runtime parent POM, manages service and CLI modules.
+Wakamiti Runtime is the execution engine for the Wakamiti testing platform. It consists of a background service
+developed with Helidon MicroProfile and a command-line interface (CLI) built in Go. 
+The CLI allows for launching test plans, managing plugins, and executing custom commands, communicating asynchronously
+with the main service to orchestrate these tasks.
 
 ## Build and run
 
@@ -20,23 +23,23 @@ You will also need to configure the IDE to use this JRI when running tests.
 sequenceDiagram
     participant User
     participant CLI
-    participant Service HTTP
-    participant Service WS
+    participant HTTP Service
+    participant WS Service
 
     User->>CLI: Run command
-    CLI->>Service HTTP: POST /command
-    Service HTTP-->>CLI: 202 Accepted
+    CLI->>HTTP Service: POST /command
+    HTTP Service-->>CLI: 202 Accepted
 
-    CLI->>Service WS: Socket open
-    Service WS->>CLI: Execution output (stream)
+    CLI->>WS Service: Socket open
+    WS Service->>CLI: Execution output (stream)
     CLI->>User: Display output
 
     alt User presses CTRL+C
         User->>CLI: CTRL+C
-        CLI->>Service WS: Sends "STOP"
-        Service WS->>Service HTTP: Stops execution
+        CLI->>WS Service: Sends "STOP"
+        WS Service->>HTTP Service: Stops execution
     end
-    
-    Service WS->>CLI: Socket close
+
+    WS Service->>CLI: Socket close
     CLI->>User: Finish
 ```
