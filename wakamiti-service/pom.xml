@@ -138,6 +138,7 @@
     </dependencies>
 
     <build>
+        <finalName>wakamiti-service</finalName>
         <plugins>
             <plugin>
                 <artifactId>maven-dependency-plugin</artifactId>
@@ -162,7 +163,7 @@
                 <artifactId>maven-jar-plugin</artifactId>
                 <version>3.5.0</version>
                 <configuration>
-<!--                    <outputDirectory>${project.build.directory}/staging</outputDirectory>-->
+                    <outputDirectory>${project.build.directory}/lib</outputDirectory>
 <!--                    <finalName>wakamiti-launcher</finalName>-->
 
                     <archive>
@@ -170,7 +171,7 @@
                             <addClasspath>true</addClasspath>
                         </manifest>
                         <manifestEntries>
-                            <Main-Class>es.wakamiti.service.WakamitiServiceApplication</Main-Class>
+                            <Main-Class>${service.main}</Main-Class>
                         </manifestEntries>
                     </archive>
                 </configuration>
