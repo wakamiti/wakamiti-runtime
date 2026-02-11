@@ -9,8 +9,7 @@
     <includeBaseDirectory>false</includeBaseDirectory>
 
     <componentDescriptors>
-        <componentDescriptor>dist-${cli.os}.xml</componentDescriptor>
-        <componentDescriptor>dist-${os.detected.arch}.xml</componentDescriptor>
+        <componentDescriptor>${project.basedir}${file.separator}src${file.separator}assembly${file.separator}dist-${cli.os}.xml</componentDescriptor>
     </componentDescriptors>
 
     <fileSets>
@@ -45,6 +44,7 @@
             <outputDirectory>bin</outputDirectory>
             <includes>
                 <include>wakamiti.properties</include>
+                <include>wakamiti.vmoptions</include>
             </includes>
         </fileSet>
     </fileSets>
