@@ -76,19 +76,22 @@ public class ExecutionServiceImpl implements ExecutionService {
         }
 
         CompletableFuture.supplyAsync(() -> runner.run(command))
-                .thenAccept(notifier::notify)
-                .whenComplete((_, error) -> {
+                .handle((result, ex) -> {
+                    if (ex != null) {
+                        LOGGER.error("Error occurred while running wakamiti service application", ex);
+                        notifier.notify(1);
+                    } else {
+                        notifier.notify(result);
+                    }
+                    return null;
+                })
+                .whenComplete((_, _) -> {
                     try {
-                        if (error != null) {
-                            LOGGER.error("Error occurred while running wakamiti service application", error);
-                        }
                         publisher.clear();
                     } finally {
                         running.set(false);
                     }
                 })
-                .thenRun(() -> running.set(false))
-                .thenRun(publisher::clear)
         ;
     }
 
