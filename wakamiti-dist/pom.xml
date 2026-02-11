@@ -49,6 +49,7 @@
                     <skip>${maven.test.skip}</skip>
                     <environmentVariables>
                         <TRG_DIR>${target.dir}</TRG_DIR>
+                        <WAKAMITI_HOST>0.0.0.0</WAKAMITI_HOST>
                     </environmentVariables>
                     <workingDirectory>
                         ${project.basedir}${file.separator}src${file.separator}test
@@ -97,6 +98,7 @@
                                     <arg value="${shellArg}"/>
                                     <arg value=".${file.separator}test.${shell} &quot;${tests.path}&quot;"/>
                                     <env key="TRG_DIR" value="${target.dir}"/>
+                                    <env key="WAKAMITI_HOST" value="0.0.0.0"/>
                                 </exec>
                                 <echo file="${target.dir}${file.separator}it-status.txt">${it.exitCode}</echo>
                             </target>
