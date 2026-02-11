@@ -10,7 +10,6 @@ release.properties
 .project
 .classpath
 .settings/
-bin/
 
 # IntelliJ
 .idea
@@ -40,6 +39,7 @@ nb-configuration.xml
 .env
 
 .go
-.jri
+.jri*
+dist
 # TLS Certificates
 .certs/
