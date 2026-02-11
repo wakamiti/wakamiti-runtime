@@ -21,7 +21,7 @@
 
     <!-- additional information -->
     <name>Wakamiti Runtime</name>
-    <description>Execution engine for the Wakamiti testing platform.</description>
+    <description>Execution engine for the Wakamiti platform.</description>
 
     <modules>
         <module>wakamiti-service</module>
