@@ -6,6 +6,7 @@
 package es.wakamiti.service.application.service;
 
 
+import es.wakamiti.service.WakamitiServiceApplication;
 import es.wakamiti.service.domain.api.ExecutionService;
 import es.wakamiti.service.domain.spi.ExecutionNotifier;
 import es.wakamiti.service.domain.spi.LogEventPublisher;
@@ -13,6 +14,8 @@ import es.wakamiti.service.domain.spi.WakamitiRunner;
 import io.helidon.common.configurable.ResourceException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -24,6 +27,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 @ApplicationScoped
 public class ExecutionServiceImpl implements ExecutionService {
+
+    private final static Logger LOGGER = LoggerFactory.getLogger(WakamitiServiceApplication.NAME);
 
     private final AtomicBoolean running = new AtomicBoolean(false);
 
@@ -72,6 +77,16 @@ public class ExecutionServiceImpl implements ExecutionService {
 
         CompletableFuture.supplyAsync(() -> runner.run(command))
                 .thenAccept(notifier::notify)
+                .whenComplete((_, error) -> {
+                    try {
+                        if (error != null) {
+                            LOGGER.error("Error occurred while running wakamiti service application", error);
+                        }
+                        publisher.clear();
+                    } finally {
+                        running.set(false);
+                    }
+                })
                 .thenRun(() -> running.set(false))
                 .thenRun(publisher::clear)
         ;

@@ -17,12 +17,13 @@ max_errorlevel=0
 
 for n in "${TESTS[@]}"; do
   echo -n "--- $n: "
-  "$TRG_DIR/bin/waka" $n > $TRG_DIR/$n.log
+  "$TRG_DIR/bin/waka" $n > $TRG_DIR/$n.log 2>&1
   errorlevel=$?
   if [ $errorlevel -eq 0 ]; then
     echo "SUCCESS"
   else
     echo "ERROR"
+    cat $TRG_DIR/$n.log
   fi
   if [ $errorlevel -gt $max_errorlevel ]; then
     max_errorlevel=$errorlevel
