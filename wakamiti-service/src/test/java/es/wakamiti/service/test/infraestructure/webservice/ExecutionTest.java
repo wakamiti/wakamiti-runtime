@@ -50,7 +50,7 @@ class ExecutionTest {
 
     @BeforeEach
     void setUp() {
-        uri = URI.create("ws://%s:%s/exec".formatted(target.getUri().getHost(), target.getUri().getPort()));
+        uri = URI.create("ws://%s:%s/exec/out".formatted(target.getUri().getHost(), target.getUri().getPort()));
     }
 
     @AfterEach

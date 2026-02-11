@@ -32,7 +32,7 @@ import java.io.IOException;
  * @see WebSocketAppender
  * @see ServerEndpoint
  */
-@ServerEndpoint("/exec")
+@ServerEndpoint("/exec/out")
 @ApplicationScoped
 public class ExecutionSocket {
 

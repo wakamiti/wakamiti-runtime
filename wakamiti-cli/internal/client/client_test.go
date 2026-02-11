@@ -243,7 +243,7 @@ func TestStreamWS_ReadError(t *testing.T) {
 func TestRun_Success(t *testing.T) {
 	upgrader := websocket.Upgrader{}
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/exec" {
+		if r.URL.Path == "/exec/out" {
 			if r.Header.Get("Upgrade") == "websocket" {
 				c, err := upgrader.Upgrade(w, r, nil)
 				if err != nil {
