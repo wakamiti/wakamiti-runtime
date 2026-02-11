@@ -6,7 +6,7 @@
     <parent>
         <groupId>es.wakamiti</groupId>
         <artifactId>wakamiti-runtime</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <version>${revision}</version>
     </parent>
 
     <artifactId>wakamiti-dist</artifactId>
@@ -33,7 +33,7 @@
                         </goals>
                         <configuration>
                             <descriptors>
-                                <descriptor>${project.basedir}${file.separator}src${file.separator}assembly${file.separator}distribution.xml</descriptor>
+                                <descriptor>src/assembly/distribution.xml</descriptor>
                             </descriptors>
                             <appendAssemblyId>false</appendAssemblyId>
                             <attach>false</attach>
