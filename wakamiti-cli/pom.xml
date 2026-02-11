@@ -47,10 +47,6 @@
                 <configuration>
                     <goVersion>${go.sdk.version}</goVersion>
                     <storeFolder>${go.bin}</storeFolder>
-                    <env>
-                        <GOBIN>${go.bin}</GOBIN>
-                        <GOPATH>${go.bin}</GOPATH>
-                    </env>
                     <workDir>${project.basedir}</workDir>
                 </configuration>
                 <executions>
@@ -111,7 +107,7 @@
             <id>go-init</id>
             <activation>
                 <file>
-                    <missing>${go.bin}</missing>
+                    <missing>${go.cached.sdk.path}</missing>
                 </file>
             </activation>
             <build>
@@ -125,10 +121,6 @@
                             <goVersion>${go.sdk.version}</goVersion>
                             <storeFolder>${go.bin}</storeFolder>
                             <workDir>${project.basedir}</workDir>
-                            <env>
-                                <GOBIN>${go.bin}</GOBIN>
-                                <GOPATH>${go.bin}</GOPATH>
-                            </env>
                         </configuration>
                         <executions>
                             <execution>
@@ -137,28 +129,15 @@
                                     <goal>cache-sdk</goal>
                                 </goals>
                                 <configuration>
-                                    <propertyGoSdkPath>go.bin</propertyGoSdkPath>
-                                    <propertyDefaultGoPath>go.bin</propertyDefaultGoPath>
-                                    <propertyGoCommandPath>project.basedir</propertyGoCommandPath>
+                                    <propertyGoSdkPath>go.cached.sdk.path</propertyGoSdkPath>
+                                    <propertyDefaultGoPath>go.default.gopath</propertyDefaultGoPath>
+                                    <propertyGoCommandPath>go.command.path</propertyGoCommandPath>
                                 </configuration>
                             </execution>
                         </executions>
                     </plugin>
                 </plugins>
             </build>
-        </profile>
-
-        <profile>
-            <id>skip-test</id>
-            <activation>
-                <property>
-                    <name>skipTests</name>
-                    <value>true</value>
-                </property>
-            </activation>
-            <properties>
-                <maven.test.skip>true</maven.test.skip>
-            </properties>
         </profile>
     </profiles>
 
