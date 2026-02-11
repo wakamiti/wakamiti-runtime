@@ -1,0 +1,52 @@
+<assembly xmlns="http://maven.apache.org/ASSEMBLY/2.1.1"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/ASSEMBLY/2.1.1 http://maven.apache.org/xsd/assembly-2.1.1.xsd">
+    <id>dist</id>
+    <formats>
+        <format>dir</format>
+        <format>${format.os}</format>
+    </formats>
+    <includeBaseDirectory>false</includeBaseDirectory>
+
+    <componentDescriptors>
+        <componentDescriptor>dist-${cli.os}.xml</componentDescriptor>
+        <componentDescriptor>dist-${os.detected.arch}.xml</componentDescriptor>
+    </componentDescriptors>
+
+    <fileSets>
+        <!-- JRI -->
+        <fileSet>
+            <directory>
+                ${project.parent.basedir}/wakamiti-service/.jri
+            </directory>
+            <outputDirectory>jri</outputDirectory>
+        </fileSet>
+        <!-- libs -->
+        <fileSet>
+            <directory>
+                ${project.parent.basedir}/wakamiti-service/target/lib
+            </directory>
+            <outputDirectory>lib</outputDirectory>
+        </fileSet>
+        <!-- CLI -->
+        <fileSet>
+            <directory>
+                ${project.parent.basedir}/wakamiti-cli/target
+            </directory>
+            <outputDirectory>bin</outputDirectory>
+            <fileMode>0755</fileMode>
+            <includes>
+                <include>waka*</include>
+            </includes>
+        </fileSet>
+        <!-- scripts -->
+        <fileSet>
+            <directory>${project.basedir}/bin</directory>
+            <outputDirectory>bin</outputDirectory>
+            <includes>
+                <include>wakamiti.properties</include>
+            </includes>
+        </fileSet>
+    </fileSets>
+
+</assembly>

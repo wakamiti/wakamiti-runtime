@@ -1,0 +1,140 @@
+#!/bin/sh
+
+# ---------------------------------------------------------------------
+# Wakamiti startup script.
+# ---------------------------------------------------------------------
+
+message()
+{
+  printf "ERROR: %s\n%s\n" "Cannot start Wakamiti" "$1"
+}
+
+if [ -z "$(command -v uname)" ] || [ -z "$(command -v realpath)" ] || [ -z "$(command -v dirname)" ] || \
+   [ -z "$(command -v cat)" ] || [ -z "$(command -v grep)" ]; then
+  TOOLS_MSG="Required tools are missing:"
+  for tool in uname realpath grep dirname cat ; do
+     test -z "$(command -v $tool)" && TOOLS_MSG="$TOOLS_MSG $tool"
+  done
+  message "$TOOLS_MSG (SHELL=$SHELL PATH=$PATH)"
+  exit 1
+fi
+
+# shellcheck disable=SC2034
+GREP_OPTIONS=''
+OS_TYPE=$(uname -s)
+OS_ARCH=$(uname -m)
+
+# ---------------------------------------------------------------------
+# Ensure $WAKAMITI_HOME points to the directory where Wakamiti is installed.
+# ---------------------------------------------------------------------
+WAKAMITI_BIN_DIR=$(dirname "$(realpath "$0")")
+WAKAMITI_HOME=$(dirname "${WAKAMITI_BIN_DIR}")
+CONFIG_HOME="${XDG_CONFIG_HOME:-${HOME}/.config}"
+
+# ---------------------------------------------------------------------
+# Locate a JRE installation directory command -v will be used to run Wakamiti.
+# Try (in order): $WAKAMITI_JDK, ../jri, $JDK_HOME, $JAVA_HOME, "java" in $PATH.
+# ---------------------------------------------------------------------
+JRE=""
+
+# shellcheck disable=SC2154
+if [ -n "$WAKAMITI_JDK" ] && [ -x "$WAKAMITI_JDK/bin/java" ]; then
+  JRE="$WAKAMITI_JDK"
+fi
+
+if [ -z "$JRE" ] && [ "$OS_TYPE" = "Linux" ] && [ -f "$WAKAMITI_HOME/jri/release" ]; then
+  JBR_ARCH="OS_ARCH=\"$OS_ARCH\""
+  if grep -q -e "$JBR_ARCH" "$WAKAMITI_HOME/jri/release" ; then
+    JRE="$WAKAMITI_HOME/jri"
+  fi
+fi
+
+# shellcheck disable=SC2153
+if [ -z "$JRE" ]; then
+  if [ -n "$JDK_HOME" ] && [ -x "$JDK_HOME/bin/java" ]; then
+    JRE="$JDK_HOME"
+  elif [ -n "$JAVA_HOME" ] && [ -x "$JAVA_HOME/bin/java" ]; then
+    JRE="$JAVA_HOME"
+  fi
+fi
+
+if [ -z "$JRE" ]; then
+  JAVA_BIN=$(command -v java)
+else
+  JAVA_BIN="$JRE/bin/java"
+fi
+
+if [ -z "$JAVA_BIN" ] || [ ! -x "$JAVA_BIN" ]; then
+  message "No JRE found. Please make sure \$WAKAMITI_JDK, \$JDK_HOME, or \$JAVA_HOME point to valid JRE installation."
+  exit 1
+fi
+
+# ---------------------------------------------------------------------
+# Collect JVM options.
+# ---------------------------------------------------------------------
+WAKAMITI_PROPERTIES_PROPERTY=""
+# shellcheck disable=SC2154
+if [ -n "$WAKAMITI_PROPERTIES" ]; then
+  WAKAMITI_PROPERTIES_PROPERTY="-Dwakamiti.properties.file=$WAKAMITI_PROPERTIES"
+fi
+
+# shellcheck disable=SC2034
+WAKAMITI_CACHE_DIR="${XDG_CACHE_HOME:-${HOME}/.cache}/Wakamiti"
+
+# <WAKAMITI_HOME>/bin/[<os>/]<bin_name>.vmoptions ...
+VM_OPTIONS_FILE=""
+if [ -r "${WAKAMITI_BIN_DIR}/wakamiti.vmoptions" ]; then
+  VM_OPTIONS_FILE="${WAKAMITI_BIN_DIR}/wakamiti.vmoptions"
+else
+  test "${OS_TYPE}" = "Darwin" && OS_SPECIFIC="mac" || OS_SPECIFIC="linux"
+  if [ -r "${WAKAMITI_BIN_DIR}/${OS_SPECIFIC}/wakamiti.vmoptions" ]; then
+    VM_OPTIONS_FILE="${WAKAMITI_BIN_DIR}/${OS_SPECIFIC}/wakamiti.vmoptions"
+  fi
+fi
+
+# ... [+ <WAKAMITI_VM_OPTIONS> || <config_directory>/<bin_name>.vmoptions]
+USER_VM_OPTIONS_FILE=""
+if [ -n "$WAKAMITI_VM_OPTIONS" ] && [ -r "$WAKAMITI_VM_OPTIONS" ]; then
+  USER_VM_OPTIONS_FILE="$WAKAMITI_VM_OPTIONS"
+elif [ -r "${CONFIG_HOME}/Wakamiti/wakamiti.vmoptions" ]; then
+  USER_VM_OPTIONS_FILE="${CONFIG_HOME}/Wakamiti/wakamiti.vmoptions"
+fi
+
+VM_OPTIONS=""
+if [ -z "$VM_OPTIONS_FILE" ] && [ -z "$USER_VM_OPTIONS_FILE" ]; then
+  message "Cannot find a VM options file"
+elif [ -z "$USER_VM_OPTIONS_FILE" ]; then
+  VM_OPTIONS=$(grep -E -v -e "^#.*" "$VM_OPTIONS_FILE")
+elif [ -z "$VM_OPTIONS_FILE" ]; then
+  VM_OPTIONS=$(grep -E -v -e "^#.*" "$USER_VM_OPTIONS_FILE")
+else
+  VM_FILTER=""
+  if grep -E -q -e "-XX:\+.*GC" "$USER_VM_OPTIONS_FILE" ; then
+    VM_FILTER="-XX:\+.*GC|"
+  fi
+  if grep -E -q -e "-XX:InitialRAMPercentage=" "$USER_VM_OPTIONS_FILE" ; then
+    VM_FILTER="${VM_FILTER}-Xms|"
+  fi
+  if grep -E -q -e "-XX:(Max|Min)RAMPercentage=" "$USER_VM_OPTIONS_FILE" ; then
+    VM_FILTER="${VM_FILTER}-Xmx|"
+  fi
+  if [ -z "$VM_FILTER" ]; then
+    VM_OPTIONS=$(cat "$VM_OPTIONS_FILE" "$USER_VM_OPTIONS_FILE" 2> /dev/null | grep -E -v -e "^#.*")
+  else
+    VM_OPTIONS=$({ grep -E -v -e "(${VM_FILTER%'|'})" "$VM_OPTIONS_FILE"; cat "$USER_VM_OPTIONS_FILE"; } 2> /dev/null | grep -E -v -e "^#.*")
+  fi
+fi
+
+
+# ---------------------------------------------------------------------
+# Run Wakamiti
+# ---------------------------------------------------------------------
+IFS="$(printf '\n\t')"
+# shellcheck disable=SC2086
+exec "$JAVA_BIN" \
+  -classpath "$WAKAMITI_HOME/lib/*" \
+  "-XX:ErrorFile=$HOME/java_error_in_wakamiti_%p.log" \
+  "-XX:HeapDumpPath=$HOME/java_error_in_wakamiti.hprof" \
+  ${VM_OPTIONS} \
+  ${WAKAMITI_PROPERTIES_PROPERTY} \
+  es.wakamiti.service.WakamitiServiceApplication "$@"

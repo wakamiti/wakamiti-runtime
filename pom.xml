@@ -27,14 +27,19 @@
         <module>wakamiti-service</module>
 <!--        <module>wakamiti-systray</module>-->
         <module>wakamiti-cli</module>
-<!--        <module>wakamiti-updater</module>-->
+        <!--        <module>wakamiti-updater</module>-->
+        <module>wakamiti-dist</module>
     </modules>
 
     <properties>
         <revision>1.0.0-SNAPSHOT</revision>
 
         <cli.exeSuffix/>
-        <cli.exec>${project.build.directory}${file.separator}waka${cli.exeSuffix}</cli.exec>
+        <cli.os>unix</cli.os>
+        <format.os>tar.gz</format.os>
+        <shell>sh</shell>
+        <shellArg>-c</shellArg>
+        <service.main>es.wakamiti.service.WakamitiServiceApplication</service.main>
     </properties>
 
     <build>
@@ -56,49 +61,13 @@
             <id>goos-windows</id>
             <activation><os><family>Windows</family></os></activation>
             <properties>
+                <cli.os>win</cli.os>
+                <format.os>zip</format.os>
                 <cli.exeSuffix>.exe</cli.exeSuffix>
+                <shell>cmd</shell>
+                <shellArg>/c</shellArg>
             </properties>
         </profile>
-
-<!--        &lt;!&ndash; GOARCH arm64 &ndash;&gt;-->
-<!--        <profile>-->
-<!--            <id>goarch-arm64-arm64</id>-->
-<!--            <activation><os><arch>arm64</arch></os></activation>-->
-<!--            <properties><cli.goarch>arm64</cli.goarch></properties>-->
-<!--        </profile>-->
-
-<!--        <profile>-->
-<!--            <id>goarch-arm64-aarch64</id>-->
-<!--            <activation><os><arch>aarch64</arch></os></activation>-->
-<!--            <properties><cli.goarch>arm64</cli.goarch></properties>-->
-<!--        </profile>-->
-
-<!--        &lt;!&ndash; GOARCH amd64 &ndash;&gt;-->
-<!--        <profile>-->
-<!--            <id>goarch-amd64-amd64</id>-->
-<!--            <activation><os><arch>amd64</arch></os></activation>-->
-<!--            <properties><cli.goarch>amd64</cli.goarch></properties>-->
-<!--        </profile>-->
-
-<!--        <profile>-->
-<!--            <id>goarch-amd64-x86_64</id>-->
-<!--            <activation><os><arch>x86_64</arch></os></activation>-->
-<!--            <properties><cli.goarch>amd64</cli.goarch></properties>-->
-<!--        </profile>-->
-
-<!--        &lt;!&ndash; GOARCH 386 &ndash;&gt;-->
-<!--        <profile>-->
-<!--            <id>goarch-386-x86</id>-->
-<!--            <activation><os><arch>x86</arch></os></activation>-->
-<!--            <properties><cli.goarch>386</cli.goarch></properties>-->
-<!--        </profile>-->
-
-<!--        <profile>-->
-<!--            <id>goarch-386-i386</id>-->
-<!--            <activation><os><arch>i386</arch></os></activation>-->
-<!--            <properties><cli.goarch>386</cli.goarch></properties>-->
-<!--        </profile>-->
-
     </profiles>
 
 </project>

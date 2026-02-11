@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>es.wakamiti</groupId>
+        <artifactId>wakamiti-runtime</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>wakamiti-dist</artifactId>
+    <packaging>pom</packaging>
+
+    <properties>
+        <target.dir>${project.build.directory}${file.separator}${project.build.finalName}</target.dir>
+    </properties>
+
+    <build>
+        <finalName>wakamiti-${os.detected.classifier}</finalName>
+
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.7.1</version>
+                <executions>
+                    <execution>
+                        <id>make-assembly</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <configuration>
+                            <descriptors>
+                                <descriptor>src/assembly/distribution.xml</descriptor>
+                            </descriptors>
+                            <appendAssemblyId>false</appendAssemblyId>
+                            <attach>false</attach>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.6.3</version>
+                <configuration>
+                    <skip>${maven.test.skip}</skip>
+                    <environmentVariables>
+                        <TRG_DIR>${target.dir}</TRG_DIR>
+                    </environmentVariables>
+                    <workingDirectory>
+                        ${project.basedir}${file.separator}src${file.separator}test
+                    </workingDirectory>
+                    <useMavenLogger>true</useMavenLogger>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>dist-pre-test</id>
+                        <phase>pre-integration-test</phase>
+                        <goals><goal>exec</goal></goals>
+                        <configuration>
+                            <executable>.${file.separator}pre.${shell}</executable>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>dist-post-test</id>
+                        <phase>post-integration-test</phase>
+                        <goals><goal>exec</goal></goals>
+                        <configuration>
+                            <executable>.${file.separator}post.${shell}</executable>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <configuration>
+                    <skip>${maven.test.skip}</skip>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>dist-test</id>
+                        <phase>integration-test</phase>
+                        <goals><goal>run</goal></goals>
+                        <configuration>
+                            <target>
+                                <property name="tests.path"
+                                          location="${project.basedir}${file.separator}src${file.separator}test"/>
+                                <exec executable="${shell}"
+                                      dir="${tests.path}"
+                                      resultproperty="it.exitCode"
+                                      failonerror="false">
+                                    <arg value="${shellArg}"/>
+                                    <arg value=".${file.separator}test.${shell} &quot;${tests.path}&quot;"/>
+                                    <env key="TRG_DIR" value="${target.dir}"/>
+                                </exec>
+                                <echo file="${target.dir}${file.separator}it-status.txt">${it.exitCode}</echo>
+                            </target>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>dist-verify</id>
+                        <phase>verify</phase>
+                        <goals><goal>run</goal></goals>
+                        <configuration>
+                            <target>
+                                <loadfile property="it.exitCode"
+                                          srcFile="${target.dir}${file.separator}it-status.txt"
+                                          quiet="true"/>
+                                <condition property="it.failed">
+                                    <not><equals arg1="${it.exitCode}" arg2="0"/></not>
+                                </condition>
+                                <fail if="it.failed"
+                                      message="Test failed (Exit code: ${it.exitCode})" />
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.3.1</version>
+                <executions>
+                    <execution>
+                        <id>copy-file</id>
+                        <phase>install</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.parent.build.directory}</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${project.build.directory}</directory>
+                                    <includes>
+                                        <include>${project.build.finalName}.*</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
