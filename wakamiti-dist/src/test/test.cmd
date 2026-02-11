@@ -29,5 +29,6 @@ if !max_errorlevel! == 0 (
         echo Result: SUCCESS
     ) else (
         echo Result: ERROR
+        type %TRG_DIR%\wakamitid.log
     )
 exit /b %max_errorlevel%
