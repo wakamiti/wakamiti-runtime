@@ -35,9 +35,6 @@
                             <descriptors>
                                 <descriptor>${project.basedir}${file.separator}src${file.separator}assembly${file.separator}distribution.xml</descriptor>
                             </descriptors>
-                            <additionalProperties>
-                                <cli.os>${cli.os}</cli.os>
-                            </additionalProperties>
                             <appendAssemblyId>false</appendAssemblyId>
                             <attach>false</attach>
                         </configuration>
