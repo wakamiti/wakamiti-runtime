@@ -247,7 +247,7 @@ public class ExecutionResource {
                     .type(MediaType.TEXT_PLAIN)
                     .build();
         } catch (IllegalArgumentException ex) {
-            // Invalid input - null, empty, or unknown command
+            // Invalid input - null, empty, or improperly formatted command
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity(ex.getMessage())
                     .type(MediaType.TEXT_PLAIN)
