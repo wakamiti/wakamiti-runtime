@@ -13,7 +13,6 @@ import (
 	"syscall"
 
 	"es.wakamiti/wakamiti-cli/internal/client"
-	"es.wakamiti/wakamiti-cli/internal/config"
 )
 
 func main() {
@@ -27,9 +26,9 @@ func main() {
 
 // run contains the core application logic and returns an exit code.
 func run(ctx context.Context) int {
-	conf := config.Config{
-		ServiceHost: config.Getenv("WAKAMITI_HOST", "127.0.0.1"),
-		ServicePort: config.Getenv("WAKAMITI_PORT", "7264"),
+	conf := client.Config{
+		ServiceHost: client.Getenv("WAKAMITI_HOST", "127.0.0.1"),
+		ServicePort: client.Getenv("WAKAMITI_PORT", "7264"),
 	}
 	cli := client.Client{Config: conf}
 

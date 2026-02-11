@@ -17,7 +17,6 @@ import (
 	"testing"
 	"time"
 
-	"es.wakamiti/wakamiti-cli/internal/config"
 	"github.com/gorilla/websocket"
 )
 
@@ -274,7 +273,7 @@ func TestRun_Success(t *testing.T) {
 	parts := strings.Split(hostPort, ":")
 
 	client := &Client{
-		Config: config.Config{
+		Config: Config{
 			ServiceHost: parts[0],
 			ServicePort: parts[1],
 		},
@@ -303,7 +302,7 @@ func TestRun_Success(t *testing.T) {
 
 func TestRun_PostError(t *testing.T) {
 	client := &Client{
-		Config: config.Config{
+		Config: Config{
 			ServiceHost: "localhost",
 			ServicePort: "1",
 		},
@@ -339,7 +338,7 @@ func TestRun_StreamError(t *testing.T) {
 	parts := strings.Split(hostPort, ":")
 
 	client := &Client{
-		Config: config.Config{
+		Config: Config{
 			ServiceHost: parts[0],
 			ServicePort: parts[1],
 		},

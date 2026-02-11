@@ -18,13 +18,12 @@ import (
 	"strings"
 	"time"
 
-	"es.wakamiti/wakamiti-cli/internal/config"
 	"github.com/gorilla/websocket"
 )
 
 // Client handles communication with the Wakamiti service.
 type Client struct {
-	Config config.Config
+	Config Config
 }
 
 // Run executes the CLI logic.
