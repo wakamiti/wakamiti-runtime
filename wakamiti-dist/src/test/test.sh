@@ -34,6 +34,6 @@ if [ $max_errorlevel -eq 0 ]; then
     echo "Result: SUCCESS"
 else
     echo "Result: ERROR"
-    type $TRG_DIR/wakamitid.log
+    cat $TRG_DIR/wakamitid.log
 fi
 exit $max_errorlevel
