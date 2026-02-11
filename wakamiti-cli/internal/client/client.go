@@ -78,9 +78,27 @@ func (c *Client) DoPostText(ctx context.Context, url, body string) error {
 
 // StreamWS connects to a WebSocket URL and prints received messages to stdout.
 func (c *Client) StreamWS(ctx context.Context, wsURL string) (int, error) {
-	d := websocket.Dialer{HandshakeTimeout: 10 * time.Second}
-	conn, _, err := d.DialContext(ctx, wsURL, nil)
-	if err != nil {
+	var conn *websocket.Conn
+	var err error
+
+	backoffs := []time.Duration{100 * time.Millisecond, 250 * time.Millisecond, 500 * time.Millisecond}
+	dialer := websocket.Dialer{HandshakeTimeout: 10 * time.Second}
+
+	for i := 0; ; i++ {
+		conn, _, err = dialer.DialContext(ctx, wsURL, nil)
+		if err == nil {
+			break
+		}
+
+		// If it's a handshake error and we have retries left, wait and try again.
+		if i < len(backoffs) && isHandshakeError(err) {
+			select {
+			case <-time.After(backoffs[i]):
+				continue
+			case <-ctx.Done():
+				return 1, ctx.Err()
+			}
+		}
 		return 1, fmt.Errorf("failed to connect to WebSocket: %w", err)
 	}
 	defer conn.Close()
@@ -137,4 +155,16 @@ func (c *Client) HandleServerClose(err error) (int, error) {
 		return 1, errors.New("websocket closed by unknown reason")
 	}
 	return 1, err
+}
+
+func isHandshakeError(err error) bool {
+	if err == nil {
+		return false
+	}
+	// websocket.ErrBadHandshake is the common error returned by Gorilla when status is not 101.
+	if errors.Is(err, websocket.ErrBadHandshake) {
+		return true
+	}
+	// Also check for string content as a fallback if wrapped or different.
+	return strings.Contains(err.Error(), "bad handshake")
 }
