@@ -31,7 +31,5 @@ if !max_errorlevel! == 0 (
         echo Result: ERROR
         echo - type %TRG_DIR%\wakamitid.log
         type %TRG_DIR%\wakamitid.log
-        echo - dir %TRG_DIR%\lib
-        dir %TRG_DIR%\lib
     )
 exit /b %max_errorlevel%

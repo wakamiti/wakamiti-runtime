@@ -36,7 +36,5 @@ else
     echo "Result: ERROR"
     echo - cat $TRG_DIR/wakamitid.log
     cat $TRG_DIR/wakamitid.log
-    echo - ls $TRG_DIR/lib
-    ls $TRG_DIR/lib
 fi
 exit $max_errorlevel
