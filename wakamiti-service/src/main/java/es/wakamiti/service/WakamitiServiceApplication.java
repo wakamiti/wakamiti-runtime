@@ -8,15 +8,14 @@ package es.wakamiti.service;
 
 import io.helidon.config.Config;
 import io.helidon.config.ConfigSources;
+import io.helidon.logging.common.LogConfig;
 import io.helidon.microprofile.server.Server;
-import jakarta.enterprise.context.ApplicationScoped;
 
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
 
-@ApplicationScoped
 public class WakamitiServiceApplication {
 
     public static final String NAME = "service.wakamiti";
@@ -31,7 +30,10 @@ public class WakamitiServiceApplication {
         System.setProperty("helidon.service-registry.check-unrecognized-contracts", "false");
 
         Config config = Config.builder()
-                .sources(ConfigSources.classpath("application.yml").build())
+                .sources(
+                        ConfigSources.systemProperties(),
+                        ConfigSources.classpath("application.yml").build()
+                )
                 .build();
 
         Map<String, String> overrides = config.get("envs")

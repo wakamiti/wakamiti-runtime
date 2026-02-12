@@ -7,8 +7,7 @@ server:
     connect-timeout: PT2S
 
 #  log:
-#    level: TRACE
-
+#    level: INFO
 
 
 mp:

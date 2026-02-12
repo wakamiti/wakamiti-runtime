@@ -23,12 +23,8 @@
         <appender-ref ref="WS" level="info"/>
         <appender-ref ref="Console" level="trace"/>
     </logger>
-    <logger name="io.helidon" level="info">
+    <logger name="io.helidon" level="${server.log.level:-info}">
         <appender-ref ref="Console"/>
     </logger>
-    <logger name="io.helidon.microprofile.openapi" level="off">
-        <appender-ref ref="Console"/>
-    </logger>
-
-    <root level="trace"/>
+    <logger name="io.helidon.microprofile.openapi" level="off"/>
 </Configuration>

@@ -137,4 +137,5 @@ exec "$JAVA_BIN" \
   "-XX:HeapDumpPath=$HOME/java_error_in_wakamiti.hprof" \
   ${VM_OPTIONS} \
   ${WAKAMITI_PROPERTIES_PROPERTY} \
+  ${WAKAMITI_OPTS} \
   es.wakamiti.service.WakamitiServiceApplication "$@"

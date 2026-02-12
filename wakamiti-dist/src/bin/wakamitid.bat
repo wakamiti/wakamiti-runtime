@@ -106,4 +106,5 @@ IF "%VM_OPTIONS_FILE%%USER_VM_OPTIONS_FILE%" == "" (
   "-XX:HeapDumpPath=%USERPROFILE%\java_error_in_wakamiti.hprof" ^
   %ACC% ^
   %WAKAMITI_PROPERTIES_PROPERTY% ^
+  %WAKAMITI_OPTS% ^
   es.wakamiti.service.WakamitiServiceApplication %*
