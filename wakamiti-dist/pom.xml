@@ -49,7 +49,6 @@
                     <skip>${maven.test.skip}</skip>
                     <environmentVariables>
                         <TRG_DIR>${target.dir}</TRG_DIR>
-                        <WAKAMITI_OPTS>-Dserver.log.level=TRACE</WAKAMITI_OPTS>
                     </environmentVariables>
                     <workingDirectory>
                         ${project.basedir}${file.separator}src${file.separator}test
