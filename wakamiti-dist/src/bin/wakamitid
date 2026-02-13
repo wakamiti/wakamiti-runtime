@@ -81,7 +81,7 @@ fi
 # shellcheck disable=SC2034
 WAKAMITI_CACHE_DIR="${XDG_CACHE_HOME:-${HOME}/.cache}/Wakamiti"
 
-# <WAKAMITI_HOME>/bin/[<os>/]<bin_name>.vmoptions ...
+# <WAKAMITI_HOME>/bin/<bin_name>.vmoptions ...
 VM_OPTIONS_FILE=""
 if [ -r "${WAKAMITI_BIN_DIR}/wakamiti.vmoptions" ]; then
   VM_OPTIONS_FILE="${WAKAMITI_BIN_DIR}/wakamiti.vmoptions"
