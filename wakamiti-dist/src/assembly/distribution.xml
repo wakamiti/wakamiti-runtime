@@ -9,7 +9,7 @@
     <includeBaseDirectory>false</includeBaseDirectory>
 
     <componentDescriptors>
-        <componentDescriptor>dist-${cli.os}.xml</componentDescriptor>
+        <componentDescriptor>dist-${shell}.xml</componentDescriptor>
     </componentDescriptors>
 
     <fileSets>
@@ -25,24 +25,19 @@
             </directory>
             <outputDirectory>lib</outputDirectory>
         </fileSet>
-        <!-- CLI -->
-        <fileSet>
-            <directory>
-                ${project.parent.basedir}/wakamiti-cli/target
-            </directory>
-            <outputDirectory>bin</outputDirectory>
-            <fileMode>0755</fileMode>
-            <includes>
-                <include>waka*</include>
-            </includes>
-        </fileSet>
         <!-- scripts -->
         <fileSet>
             <directory>${project.basedir}/src/bin</directory>
             <outputDirectory>bin</outputDirectory>
             <includes>
-                <include>wakamiti.properties</include>
                 <include>wakamiti.vmoptions</include>
+            </includes>
+        </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/src/bin/${os.detected.name}</directory>
+            <outputDirectory>bin</outputDirectory>
+            <includes>
+                <include>wakamiti.properties</include>
             </includes>
         </fileSet>
     </fileSets>

@@ -14,14 +14,15 @@ set max_errorlevel=0
 for %%n in (%TESTS%) do (
     <nul set /p ".=--- %%n: "
     %TRG_DIR%\bin\waka.exe %%n > %TRG_DIR%\%%n.log 2>&1
-    if !errorlevel! == 0 (
+    set error=!errorlevel!
+    if !error! == 0 (
         echo SUCCESS
     ) else (
         echo ERROR
         type %TRG_DIR%\%%n.log
     )
-    if !errorlevel! gtr !max_errorlevel! (
-        set max_errorlevel=!errorlevel!
+    if !error! gtr !max_errorlevel! (
+        set max_errorlevel=!error!
     )
 )
 

@@ -41,7 +41,9 @@ IF NOT EXIST "%JAVA_EXE%" (
 :: ------------------------------------------------------------------------
 :: Collect JVM options.
 :: ------------------------------------------------------------------------
-IF NOT "%WAKAMITI_PROPERTIES%" == "" SET WAKAMITI_PROPERTIES_PROPERTY="-Dwakamiti.properties.file=%WAKAMITI_PROPERTIES%"
+
+IF "%WAKAMITI_PROPERTIES%" == "" SET WAKAMITI_PROPERTIES="%WAKAMITI_BIN_DIR%\wakamiti.properties"
+SET WAKAMITI_PROPERTIES_PROPERTY="-Dwakamiti.properties.file=%WAKAMITI_PROPERTIES%"
 
 SET WAKAMITI_CACHE_DIR=%LOCALAPPDATA%\Wakamiti
 

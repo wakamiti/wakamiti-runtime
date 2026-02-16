@@ -35,3 +35,5 @@ if %errorlevel% neq 0 (
     echo Timeout waiting for server start
     exit /b 1
 )
+
+powershell -NoProfile -Command "Start-Sleep -Seconds 3"

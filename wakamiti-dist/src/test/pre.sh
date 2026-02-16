@@ -28,6 +28,7 @@ while [ $COUNT -lt $TIMEOUT ]; do
   if grep -q "Server started on" "$LOG"; then
     kill $TAIL_PID >/dev/null 2>&1
     wait $TAIL_PID 2>/dev/null
+    sleep 3
     exit 0
   fi
   sleep 1

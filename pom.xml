@@ -35,7 +35,6 @@
         <revision>1.0.0-SNAPSHOT</revision>
 
         <cli.exeSuffix/>
-        <cli.os>unix</cli.os>
         <format.os>tar.gz</format.os>
         <shell>sh</shell>
         <shellArg>-c</shellArg>
@@ -61,7 +60,6 @@
             <id>goos-windows</id>
             <activation><os><family>Windows</family></os></activation>
             <properties>
-                <cli.os>win</cli.os>
                 <format.os>zip</format.os>
                 <cli.exeSuffix>.exe</cli.exeSuffix>
                 <shell>cmd</shell>

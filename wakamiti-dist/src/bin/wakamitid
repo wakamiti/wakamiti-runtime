@@ -72,11 +72,12 @@ fi
 # ---------------------------------------------------------------------
 # Collect JVM options.
 # ---------------------------------------------------------------------
-WAKAMITI_PROPERTIES_PROPERTY=""
+
 # shellcheck disable=SC2154
-if [ -n "$WAKAMITI_PROPERTIES" ]; then
-  WAKAMITI_PROPERTIES_PROPERTY="-Dwakamiti.properties.file=$WAKAMITI_PROPERTIES"
+if [ -z "$WAKAMITI_PROPERTIES" ]; then
+  WAKAMITI_PROPERTIES="$WAKAMITI_BIN_DIR\wakamiti.properties"
 fi
+WAKAMITI_PROPERTIES_PROPERTY="-Dwakamiti.properties.file=$WAKAMITI_PROPERTIES"
 
 # shellcheck disable=SC2034
 WAKAMITI_CACHE_DIR="${XDG_CACHE_HOME:-${HOME}/.cache}/Wakamiti"

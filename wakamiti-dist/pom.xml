@@ -13,6 +13,7 @@
     <packaging>pom</packaging>
 
     <properties>
+        <test.dir>${project.basedir}${file.separator}src${file.separator}test</test.dir>
         <target.dir>${project.build.directory}${file.separator}${project.build.finalName}</target.dir>
     </properties>
 
@@ -49,10 +50,11 @@
                     <skip>${maven.test.skip}</skip>
                     <environmentVariables>
                         <TRG_DIR>${target.dir}</TRG_DIR>
+                        <USERPROFILE>${target.dir}</USERPROFILE>
+                        <HOME>${target.dir}</HOME>
+                        <WAKAMITI_OPTS>-Duser.home=${target.dir}</WAKAMITI_OPTS>
                     </environmentVariables>
-                    <workingDirectory>
-                        ${project.basedir}${file.separator}src${file.separator}test
-                    </workingDirectory>
+                    <workingDirectory>${test.dir}</workingDirectory>
                     <useMavenLogger>true</useMavenLogger>
                 </configuration>
                 <executions>
@@ -88,8 +90,7 @@
                         <goals><goal>run</goal></goals>
                         <configuration>
                             <target>
-                                <property name="tests.path"
-                                          location="${project.basedir}${file.separator}src${file.separator}test"/>
+                                <property name="tests.path" location="${test.dir}"/>
                                 <exec executable="${shell}"
                                       dir="${tests.path}"
                                       resultproperty="it.exitCode"
@@ -97,6 +98,8 @@
                                     <arg value="${shellArg}"/>
                                     <arg value=".${file.separator}test.${shell} &quot;${tests.path}&quot;"/>
                                     <env key="TRG_DIR" value="${target.dir}"/>
+                                    <env key="USERPROFILE" value="${target.dir}"/>
+                                    <env key="HOME" value="${target.dir}"/>
                                 </exec>
                                 <echo file="${target.dir}${file.separator}it-status.txt">${it.exitCode}</echo>
                             </target>

@@ -2,13 +2,24 @@
            xsi:schemaLocation="http://maven.apache.org/ASSEMBLY-COMPONENT/2.2.0 https://maven.apache.org/xsd/assembly-component-2.2.0.xsd">
 
     <fileSets>
+        <!-- CLI -->
+        <fileSet>
+            <directory>
+                ${project.parent.basedir}/wakamiti-cli/target
+            </directory>
+            <outputDirectory>bin</outputDirectory>
+            <fileMode>0755</fileMode>
+            <includes>
+                <include>waka.exe</include>
+            </includes>
+        </fileSet>
         <!-- scripts -->
         <fileSet>
             <directory>${project.basedir}/src/bin</directory>
             <outputDirectory>bin</outputDirectory>
             <fileMode>0755</fileMode>
             <includes>
-                <include>wakamitid</include>
+                <include>*.bat</include>
             </includes>
         </fileSet>
     </fileSets>
