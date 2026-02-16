@@ -7,10 +7,13 @@ package es.wakamiti.service.test.infraestructure.webservice;
 
 
 import es.wakamiti.service.domain.spi.LogHistoryRepository;
+import es.wakamiti.service.infrastructure.security.TokenManager;
+import io.helidon.microprofile.testing.AddConfig;
 import io.helidon.microprofile.testing.junit5.HelidonTest;
 import jakarta.inject.Inject;
 import jakarta.websocket.*;
 import jakarta.ws.rs.client.Entity;
+import jakarta.ws.rs.client.Invocation;
 import jakarta.ws.rs.client.WebTarget;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -25,16 +28,20 @@ import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.time.Duration;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static es.wakamiti.service.infrastructure.security.TokenManager.HEADER;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.*;
 
 
+@AddConfig(key = "server.system.path", value = "target/wakamiti")
 @HelidonTest
 class ExecutionTest {
 
@@ -46,11 +53,28 @@ class ExecutionTest {
     private WebTarget target;
     @Inject
     private LogHistoryRepository history;
+    @Inject
+    private TokenManager tokenManager;
     private URI uri;
+
+    private Invocation.Builder request(String... path) {
+        WebTarget t = target;
+        for (String p : path) {
+            t = t.path(p);
+        }
+        return t.request().header(HEADER, getToken());
+    }
+
+    private String getToken() {
+        return tokenManager.getToken();
+    }
 
     @BeforeEach
     void setUp() {
-        uri = URI.create("ws://%s:%s/exec/out".formatted(target.getUri().getHost(), target.getUri().getPort()));
+        uri = URI.create("ws://%s:%s/exec/out".formatted(
+                target.getUri().getHost(),
+                target.getUri().getPort()
+        ));
     }
 
     @AfterEach
@@ -61,9 +85,7 @@ class ExecutionTest {
 
     @Test
     void testHealth() {
-        try (Response response = target
-                .path("health")
-                .request()
+        try (Response response = request("health")
                 .get()) {
             LOGGER.debug(response.readEntity(String.class));
             assertThat(response.getStatus(), is(200));
@@ -73,12 +95,13 @@ class ExecutionTest {
     @DisplayName("Execution with success")
     @Test
     void testExecutionWithSuccess() throws Exception {
-        try (Response response = target
-                .path("exec")
-                .request()
+        try (Response response = request("exec")
                 .post(Entity.entity("run something", MediaType.TEXT_PLAIN_TYPE))) {
             assertThat(response.getStatus(), is(202));
-            try (Session session = ContainerProvider.getWebSocketContainer().connectToServer(Client.class, uri)) {
+            ClientEndpointConfig config = ClientEndpointConfig.Builder.create()
+                    .configurator(new TokenConfigurator(getToken()))
+                    .build();
+            try (Session session = ContainerProvider.getWebSocketContainer().connectToServer(new Client(), config, uri)) {
                 try {
                     assertEquals("Ejecutando comando: run something" + System.lineSeparator(),
                                  MESSAGES.poll(10, TimeUnit.SECONDS));
@@ -102,30 +125,36 @@ class ExecutionTest {
     @ParameterizedTest(name = "[{index}] when entity={argumentsWithNames}")
     @NullAndEmptySource
     void testExecutionWithBadRequestError(String entity) {
-        try (Response response = target
-                .path("exec")
-                .request()
+        try (Response response = request("exec")
                 .post(Entity.entity(entity, MediaType.TEXT_PLAIN_TYPE))) {
             assertThat(response.getStatus(), is(400));
+        }
+    }
+
+    @DisplayName("Execution with unauthorized error")
+    @Test
+    void testExecutionWithUnauthorizedError() {
+        try (Response response = target.path("exec").request()
+                .post(Entity.entity("run something", MediaType.TEXT_PLAIN_TYPE))) {
+            assertThat(response.getStatus(), is(401));
         }
     }
 
     @DisplayName("Execution with too many requests error")
     @Test
     void testExecutionWithTooManyRequestsError() throws Exception {
-        try (Response response = target
-                .path("exec")
-                .request()
+        try (Response response = request("exec")
                 .post(Entity.entity("abc", MediaType.TEXT_PLAIN_TYPE))) {
             assertThat(response.getStatus(), is(202));
         }
         await().pollDelay(Duration.ofSeconds(1)).until(() -> true);
-        try (Response response = target
-                .path("exec")
-                .request()
+        try (Response response = request("exec")
                 .post(Entity.entity("abc", MediaType.TEXT_PLAIN_TYPE))) {
             assertThat(response.getStatus(), is(429));
-            try (Session session = ContainerProvider.getWebSocketContainer().connectToServer(Client.class, uri)) {
+            ClientEndpointConfig config = ClientEndpointConfig.Builder.create()
+                    .configurator(new TokenConfigurator(getToken()))
+                    .build();
+            try (Session session = ContainerProvider.getWebSocketContainer().connectToServer(new Client(), config, uri)) {
                 try {
                     assertEquals("Ejecutando comando: abc" + System.lineSeparator(),
                                  MESSAGES.poll(10, TimeUnit.SECONDS));
@@ -148,13 +177,14 @@ class ExecutionTest {
     @DisplayName("Execution Socket when send STOP with success")
     @Test
     void testExecutionSocketWhenSendStopWithSuccess() throws Exception {
-        try (Response response = target
-                .path("exec")
-                .request()
+        try (Response response = request("exec")
                 .post(Entity.entity("run something", MediaType.TEXT_PLAIN_TYPE))) {
             assertThat(response.getStatus(), is(202));
+            ClientEndpointConfig config = ClientEndpointConfig.Builder.create()
+                    .configurator(new TokenConfigurator(getToken()))
+                    .build();
             try (Session session = ContainerProvider.getWebSocketContainer()
-                    .connectToServer(Client.class, uri)) {
+                    .connectToServer(new Client(), config, uri)) {
                 try {
                     session.getBasicRemote().sendText("STOP");
                     assertEquals("Ejecutando comando: run something" + System.lineSeparator(),
@@ -176,7 +206,10 @@ class ExecutionTest {
     @DisplayName("Execution Socket when send invalid message with success")
     @Test
     void testExecutionSocketWhenSendInvalidMessageWithSuccess() throws Exception {
-        try (Session session = ContainerProvider.getWebSocketContainer().connectToServer(Client.class, uri)) {
+        ClientEndpointConfig config = ClientEndpointConfig.Builder.create()
+                .configurator(new TokenConfigurator(getToken()))
+                .build();
+        try (Session session = ContainerProvider.getWebSocketContainer().connectToServer(new Client(), config, uri)) {
             session.getBasicRemote().sendText("ABC");
             assertEquals("Invalid message received: ABC", MESSAGES.poll(10, TimeUnit.SECONDS));
             assertFalse(session.isOpen());
@@ -187,27 +220,24 @@ class ExecutionTest {
     /**
      * Test client
      */
-    @ClientEndpoint
-    public static class Client {
+    public static class Client extends Endpoint {
 
-        @OnOpen
-        public void open(Session session) {
+        @Override
+        public void onOpen(Session session, EndpointConfig config) {
             LOGGER.trace("Opening client session {}", session.getId());
+            session.addMessageHandler(String.class, msg -> {
+                LOGGER.trace("Message received in client session {}: {}", session.getId(), msg);
+                MESSAGES.add(msg);
+            });
             await().pollDelay(1, TimeUnit.SECONDS).until(() -> true);
         }
 
-        @OnMessage
-        public void message(Session session, String msg) {
-            LOGGER.trace("Message received in client session {}: {}", session.getId(), msg);
-            MESSAGES.add(msg);
-        }
-
-        @OnError
+        @Override
         public void onError(Session session, Throwable error) {
             LOGGER.trace("Error in client session {}", session.getId(), error);
         }
 
-        @OnClose
+        @Override
         public void onClose(
                 Session session,
                 CloseReason reason
@@ -220,6 +250,20 @@ class ExecutionTest {
                 STATUS.set(Integer.parseInt(reason.getReasonPhrase()));
             }
             await().pollDelay(1, TimeUnit.SECONDS).until(() -> true);
+        }
+    }
+
+    private static class TokenConfigurator extends ClientEndpointConfig.Configurator {
+
+        private final String token;
+
+        public TokenConfigurator(String token) {
+            this.token = token;
+        }
+
+        @Override
+        public void beforeRequest(Map<String, List<String>> headers) {
+            headers.put(HEADER, List.of(token));
         }
     }
 

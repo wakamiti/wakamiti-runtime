@@ -8,6 +8,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -26,11 +27,13 @@ func main() {
 
 // run contains the core application logic and returns an exit code.
 func run(ctx context.Context) int {
-	conf := client.Config{
-		ServiceHost: client.Getenv("WAKAMITI_HOST", "127.0.0.1"),
-		ServicePort: client.Getenv("WAKAMITI_PORT", "7264"),
+	conf, err := client.NewConfig()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		return 1
 	}
-	cli := client.Client{Config: conf}
+
+	cli := client.Client{Config: *conf}
 
 	// Pass the cancellable context to the client.
 	return cli.Run(ctx, os.Args[1:])

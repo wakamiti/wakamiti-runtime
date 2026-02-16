@@ -104,7 +104,7 @@ public class ExecutionResource {
             ExecutionService executionService
     ) {
         this.executionService = executionService;
-        LOGGER.trace("Iniciando execution resource");
+        LOGGER.trace("Init execution resource");
     }
 
     /**
@@ -231,7 +231,6 @@ public class ExecutionResource {
             )
             String command
     ) {
-
         try {
             executionService.execute(command);
         } catch (ResourceException _) {

@@ -21,6 +21,10 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+const (
+	HEADER = "X-Wakamiti-Token"
+)
+
 // Client handles communication with the Wakamiti service.
 type Client struct {
 	Config Config
@@ -63,6 +67,7 @@ func (c *Client) DoPostText(ctx context.Context, url, body string) error {
 	req.Header.Set("Content-Type", "text/plain; charset=utf-8")
 
 	httpClient := &http.Client{}
+	req.Header.Set(HEADER, c.Config.Token)
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("request failed: %w", err)
@@ -79,7 +84,9 @@ func (c *Client) DoPostText(ctx context.Context, url, body string) error {
 // StreamWS connects to a WebSocket URL and prints received messages to stdout.
 func (c *Client) StreamWS(ctx context.Context, wsURL string) (int, error) {
 	d := websocket.Dialer{HandshakeTimeout: 10 * time.Second}
-	conn, _, err := d.DialContext(ctx, wsURL, nil)
+	conn, _, err := d.DialContext(ctx, wsURL, http.Header{
+		HEADER: []string{c.Config.Token},
+	})
 	if err != nil {
 		return 1, fmt.Errorf("failed to connect to WebSocket: %w", err)
 	}

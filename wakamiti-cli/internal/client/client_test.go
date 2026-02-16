@@ -22,7 +22,10 @@ import (
 
 func TestDoPostText_SendsPlainTextBody(t *testing.T) {
 	wantBody := "--foo bar --baz=1"
-	client := &Client{}
+	wantToken := "test-token"
+	client := &Client{
+		Config: Config{Token: wantToken},
+	}
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -31,6 +34,10 @@ func TestDoPostText_SendsPlainTextBody(t *testing.T) {
 		ct := r.Header.Get("Content-Type")
 		if !strings.HasPrefix(ct, "text/plain") {
 			t.Fatalf("Content-Type=%q want text/plain", ct)
+		}
+		token := r.Header.Get(HEADER)
+		if token != wantToken {
+			t.Fatalf("Token=%q want %q", token, wantToken)
 		}
 		b, _ := io.ReadAll(r.Body)
 		if string(b) != wantBody {
@@ -65,8 +72,14 @@ func TestDoPostText_NetworkError(t *testing.T) {
 }
 
 func TestStreamWS_ProgressThenCloseReasonExitCode(t *testing.T) {
-	client := &Client{}
-	wsURL := startWSServer(t, func(c *websocket.Conn) {
+	wantToken := "test-token"
+	client := &Client{
+		Config: Config{Token: wantToken},
+	}
+	wsURL := startWSServer(t, func(c *websocket.Conn, r *http.Request) {
+		if r.Header.Get(HEADER) != wantToken {
+			t.Errorf("Missing or incorrect %s header", HEADER)
+		}
 		_ = c.WriteMessage(websocket.TextMessage, []byte("10%"))
 		_ = c.WriteMessage(websocket.TextMessage, []byte("50%"))
 
@@ -105,7 +118,7 @@ func TestStreamWS_ProgressThenCloseReasonExitCode(t *testing.T) {
 
 func TestStreamWS_CloseReasonErrorText_ReturnsError(t *testing.T) {
 	client := &Client{}
-	wsURL := startWSServer(t, func(c *websocket.Conn) {
+	wsURL := startWSServer(t, func(c *websocket.Conn, r *http.Request) {
 		_ = c.WriteMessage(websocket.TextMessage, []byte("working..."))
 		_ = c.WriteControl(
 			websocket.CloseMessage,
@@ -136,7 +149,7 @@ func TestStreamWS_CtrlC_SendsSTOP_ServerClosesWithExitCode(t *testing.T) {
 		ready   = make(chan struct{})
 	)
 
-	wsURL := startWSServer(t, func(c *websocket.Conn) {
+	wsURL := startWSServer(t, func(c *websocket.Conn, r *http.Request) {
 		close(ready)
 
 		for {
@@ -228,7 +241,7 @@ func TestHandleServerClose_EmptyReason(t *testing.T) {
 
 func TestStreamWS_ReadError(t *testing.T) {
 	client := &Client{}
-	wsURL := startWSServer(t, func(c *websocket.Conn) {
+	wsURL := startWSServer(t, func(c *websocket.Conn, r *http.Request) {
 		// Just close immediately without a proper CloseMessage
 		c.Close()
 	})
@@ -242,7 +255,12 @@ func TestStreamWS_ReadError(t *testing.T) {
 
 func TestRun_Success(t *testing.T) {
 	upgrader := websocket.Upgrader{}
+	wantToken := "run-token"
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get(HEADER) != wantToken {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
 		if r.URL.Path == "/exec/out" {
 			if r.Header.Get("Upgrade") == "websocket" {
 				c, err := upgrader.Upgrade(w, r, nil)
@@ -276,6 +294,7 @@ func TestRun_Success(t *testing.T) {
 		Config: Config{
 			ServiceHost: parts[0],
 			ServicePort: parts[1],
+			Token:       wantToken,
 		},
 	}
 
@@ -360,7 +379,7 @@ func TestRun_StreamError(t *testing.T) {
 
 // ---- WS test server helper ----
 
-func startWSServer(t *testing.T, handler func(*websocket.Conn)) string {
+func startWSServer(t *testing.T, handler func(*websocket.Conn, *http.Request)) string {
 	t.Helper()
 
 	up := websocket.Upgrader{
@@ -373,7 +392,7 @@ func startWSServer(t *testing.T, handler func(*websocket.Conn)) string {
 			t.Fatalf("upgrade error: %v", err)
 		}
 		defer c.Close()
-		handler(c)
+		handler(c, r)
 	}))
 	t.Cleanup(srv.Close)
 

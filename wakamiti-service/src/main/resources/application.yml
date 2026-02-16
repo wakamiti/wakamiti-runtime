@@ -6,8 +6,16 @@ server:
     read-timeout: PT5S
     connect-timeout: PT2S
 
-#  log:
-#    level: INFO
+  config:
+    path: ${user.home}/.wakamiti/config
+  system:
+    path: ${user.home}/.wakamiti/system
+  plugins:
+    path: ${user.home}/.wakamiti/plugins
+
+  log:
+    path: ${server.system.path}/log
+    level: INFO
 
 
 mp:

@@ -48,6 +48,9 @@
                     <goVersion>${go.sdk.version}</goVersion>
                     <storeFolder>${go.bin}</storeFolder>
                     <workDir>${project.basedir}</workDir>
+                    <env>
+                        <BUILD_DIR>${project.build.directory}</BUILD_DIR>
+                    </env>
                 </configuration>
                 <executions>
                     <execution>
