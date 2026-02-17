@@ -15,7 +15,7 @@ func TestNewConfig(t *testing.T) {
 	effectivePropsContent := `
 server.host=192.168.1.100
 server.port=8080
-server.system.path=` + tmpDir + `
+server.auth.origin=test-origin
 `
 	effectivePropsPath := filepath.Join(tmpDir, "effective.properties")
 	if err := os.WriteFile(effectivePropsPath, []byte(effectivePropsContent), 0644); err != nil {
@@ -40,13 +40,6 @@ server.system.path=` + tmpDir + `
 		t.Fatalf("Failed to create wakamiti.properties: %v", err)
 	}
 
-	// Create head.token
-	tokenContent := "secret-token-123"
-	tokenPath := filepath.Join(tmpDir, "head.token")
-	if err := os.WriteFile(tokenPath, []byte(tokenContent), 0644); err != nil {
-		t.Fatalf("Failed to create head.token: %v", err)
-	}
-
 	// Test NewConfig
 	config, err := NewConfig()
 	if err != nil {
@@ -59,8 +52,8 @@ server.system.path=` + tmpDir + `
 	if config.ServicePort != "8080" {
 		t.Errorf("ServicePort=%q want %q", config.ServicePort, "8080")
 	}
-	if config.Token != "secret-token-123" {
-		t.Errorf("Token=%q want %q", config.Token, "secret-token-123")
+	if config.Origin != "test-origin" {
+		t.Errorf("Origin=%q want %q", config.Origin, "test-origin")
 	}
 }
 
@@ -89,34 +82,6 @@ func TestNewConfig_MissingEffectiveProperties(t *testing.T) {
 	_, err := NewConfig()
 	if err == nil {
 		t.Error("NewConfig should fail when effective.properties file is missing")
-	}
-}
-
-func TestNewConfig_MissingTokenFile(t *testing.T) {
-	tmpDir := t.TempDir()
-
-	// Create effective.properties
-	effectivePropsContent := `
-server.host=localhost
-server.port=8080
-server.system.path=` + tmpDir + `
-`
-	effectivePropsPath := filepath.Join(tmpDir, "effective.properties")
-	os.WriteFile(effectivePropsPath, []byte(effectivePropsContent), 0644)
-
-	// Create wakamiti.properties
-	wakamitiPropsContent := "effective.properties=" + effectivePropsPath + "\n"
-
-	originalWd, _ := os.Getwd()
-	defer os.Chdir(originalWd)
-	os.Chdir(tmpDir)
-
-	os.WriteFile("wakamiti.properties", []byte(wakamitiPropsContent), 0644)
-
-	// Token file is missing
-	_, err := NewConfig()
-	if err == nil {
-		t.Error("NewConfig should fail when token file is missing")
 	}
 }
 

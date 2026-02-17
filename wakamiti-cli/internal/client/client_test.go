@@ -22,9 +22,9 @@ import (
 
 func TestDoPostText_SendsPlainTextBody(t *testing.T) {
 	wantBody := "--foo bar --baz=1"
-	wantToken := "test-token"
+	wantOrigin := "test-origin"
 	client := &Client{
-		Config: Config{Token: wantToken},
+		Config: Config{Origin: wantOrigin},
 	}
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -35,9 +35,9 @@ func TestDoPostText_SendsPlainTextBody(t *testing.T) {
 		if !strings.HasPrefix(ct, "text/plain") {
 			t.Fatalf("Content-Type=%q want text/plain", ct)
 		}
-		token := r.Header.Get(HEADER)
-		if token != wantToken {
-			t.Fatalf("Token=%q want %q", token, wantToken)
+		origin := r.Header.Get(HEADER)
+		if origin != wantOrigin {
+			t.Fatalf("Origin=%q want %q", origin, wantOrigin)
 		}
 		b, _ := io.ReadAll(r.Body)
 		if string(b) != wantBody {
@@ -72,12 +72,12 @@ func TestDoPostText_NetworkError(t *testing.T) {
 }
 
 func TestStreamWS_ProgressThenCloseReasonExitCode(t *testing.T) {
-	wantToken := "test-token"
+	wantOrigin := "test-origin"
 	client := &Client{
-		Config: Config{Token: wantToken},
+		Config: Config{Origin: wantOrigin},
 	}
 	wsURL := startWSServer(t, func(c *websocket.Conn, r *http.Request) {
-		if r.Header.Get(HEADER) != wantToken {
+		if r.Header.Get(HEADER) != wantOrigin {
 			t.Errorf("Missing or incorrect %s header", HEADER)
 		}
 		_ = c.WriteMessage(websocket.TextMessage, []byte("10%"))
@@ -254,10 +254,12 @@ func TestStreamWS_ReadError(t *testing.T) {
 }
 
 func TestRun_Success(t *testing.T) {
-	upgrader := websocket.Upgrader{}
-	wantToken := "run-token"
+	upgrader := websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool { return true }, // Allow all origins for testing
+	}
+	wantOrigin := "test-origin"
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get(HEADER) != wantToken {
+		if r.Header.Get(HEADER) != wantOrigin {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -281,6 +283,8 @@ func TestRun_Success(t *testing.T) {
 			} else {
 				w.WriteHeader(http.StatusAccepted)
 			}
+		} else {
+			w.WriteHeader(http.StatusAccepted)
 		}
 	})
 
@@ -294,7 +298,7 @@ func TestRun_Success(t *testing.T) {
 		Config: Config{
 			ServiceHost: parts[0],
 			ServicePort: parts[1],
-			Token:       wantToken,
+			Origin:      wantOrigin,
 		},
 	}
 

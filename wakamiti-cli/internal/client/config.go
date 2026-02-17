@@ -18,7 +18,7 @@ import (
 type Config struct {
 	ServiceHost string
 	ServicePort string
-	Token       string
+	Origin      string
 }
 
 // NewConfig creates a new Config instance by loading properties from files and environment variables.
@@ -74,22 +74,10 @@ func NewConfig() (*Config, error) {
 		}
 	}
 
-	// 3. Extract configuration
-	token := ""
-	if systemPath, ok := props["server.system.path"]; ok {
-		tokenPath := filepath.Join(systemPath, "head.token")
-		tokenBytes, err := os.ReadFile(tokenPath)
-		if err == nil {
-			token = strings.TrimSpace(string(tokenBytes))
-		} else {
-			return nil, fmt.Errorf("could not read token file at %s: %v", tokenPath, err)
-		}
-	}
-
 	return &Config{
 		ServiceHost: props["server.host"],
 		ServicePort: props["server.port"],
-		Token:       token,
+		Origin:      props["server.auth.origin"],
 	}, nil
 }
 

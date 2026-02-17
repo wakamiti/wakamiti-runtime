@@ -7,7 +7,7 @@ package es.wakamiti.service.test.infraestructure.webservice;
 
 
 import es.wakamiti.service.domain.spi.LogHistoryRepository;
-import es.wakamiti.service.infrastructure.security.TokenManager;
+import io.helidon.http.HeaderNames;
 import io.helidon.microprofile.testing.AddConfig;
 import io.helidon.microprofile.testing.junit5.HelidonTest;
 import jakarta.inject.Inject;
@@ -34,14 +34,14 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static es.wakamiti.service.infrastructure.security.TokenManager.HEADER;
+import static es.wakamiti.service.test.infraestructure.webservice.ExecutionTest.ORIGIN;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.*;
 
 
-@AddConfig(key = "server.system.path", value = "target/wakamiti")
+@AddConfig(key = "server.auth.origin", value = ORIGIN)
 @HelidonTest
 class ExecutionTest {
 
@@ -49,12 +49,12 @@ class ExecutionTest {
     private static final LinkedBlockingDeque<String> MESSAGES = new LinkedBlockingDeque<>();
     private static final AtomicInteger STATUS = new AtomicInteger(99);
 
+    public static final String ORIGIN = "test";
+
     @Inject
     private WebTarget target;
     @Inject
     private LogHistoryRepository history;
-    @Inject
-    private TokenManager tokenManager;
     private URI uri;
 
     private Invocation.Builder request(String... path) {
@@ -62,15 +62,12 @@ class ExecutionTest {
         for (String p : path) {
             t = t.path(p);
         }
-        return t.request().header(HEADER, getToken());
-    }
-
-    private String getToken() {
-        return tokenManager.getToken();
+        return t.request().header(HeaderNames.ORIGIN_NAME, ORIGIN);
     }
 
     @BeforeEach
     void setUp() {
+        System.setProperty("sun.net.http.allowRestrictedHeaders", "true");
         uri = URI.create("ws://%s:%s/exec/out".formatted(
                 target.getUri().getHost(),
                 target.getUri().getPort()
@@ -99,17 +96,17 @@ class ExecutionTest {
                 .post(Entity.entity("run something", MediaType.TEXT_PLAIN_TYPE))) {
             assertThat(response.getStatus(), is(202));
             ClientEndpointConfig config = ClientEndpointConfig.Builder.create()
-                    .configurator(new TokenConfigurator(getToken()))
+                    .configurator(new OriginConfigurator(ORIGIN))
                     .build();
             try (Session session = ContainerProvider.getWebSocketContainer().connectToServer(new Client(), config, uri)) {
                 try {
-                    assertEquals("Ejecutando comando: run something" + System.lineSeparator(),
+                    assertEquals("Executing command: run something" + System.lineSeparator(),
                                  MESSAGES.poll(10, TimeUnit.SECONDS));
-                    assertEquals("Una línea" + System.lineSeparator(),
+                    assertEquals("One line" + System.lineSeparator(),
                                  MESSAGES.poll(10, TimeUnit.SECONDS));
-                    assertEquals("Otra línea" + System.lineSeparator(),
+                    assertEquals("Another line" + System.lineSeparator(),
                                  MESSAGES.poll(10, TimeUnit.SECONDS));
-                    assertEquals("Si se ha cancelado la ejecución, esta línea no debería salir" + System.lineSeparator(),
+                    assertEquals("If execution has been cancelled, this line should not appear" + System.lineSeparator(),
                                  MESSAGES.poll(10, TimeUnit.SECONDS));
                 } finally {
                     await().atMost(Duration.ofSeconds(20))
@@ -152,18 +149,18 @@ class ExecutionTest {
                 .post(Entity.entity("abc", MediaType.TEXT_PLAIN_TYPE))) {
             assertThat(response.getStatus(), is(429));
             ClientEndpointConfig config = ClientEndpointConfig.Builder.create()
-                    .configurator(new TokenConfigurator(getToken()))
+                    .configurator(new OriginConfigurator(ORIGIN))
                     .build();
             try (Session session = ContainerProvider.getWebSocketContainer().connectToServer(new Client(), config, uri)) {
                 try {
-                    assertEquals("Ejecutando comando: abc" + System.lineSeparator(),
-                                 MESSAGES.poll(10, TimeUnit.SECONDS));
-                    assertEquals("Una línea" + System.lineSeparator(),
-                                 MESSAGES.poll(10, TimeUnit.SECONDS));
-                    assertEquals("Otra línea" + System.lineSeparator(),
-                                 MESSAGES.poll(10, TimeUnit.SECONDS));
-                    assertEquals("Si se ha cancelado la ejecución, esta línea no debería salir" + System.lineSeparator(),
-                                 MESSAGES.poll(10, TimeUnit.SECONDS));
+                    assertEquals("Executing command: abc" + System.lineSeparator(),
+                            MESSAGES.poll(10, TimeUnit.SECONDS));
+                    assertEquals("One line" + System.lineSeparator(),
+                            MESSAGES.poll(10, TimeUnit.SECONDS));
+                    assertEquals("Another line" + System.lineSeparator(),
+                            MESSAGES.poll(10, TimeUnit.SECONDS));
+                    assertEquals("If execution has been cancelled, this line should not appear" + System.lineSeparator(),
+                            MESSAGES.poll(10, TimeUnit.SECONDS));
                 } finally {
                     await().atMost(Duration.ofSeconds(20))
                             .until(session::isOpen, is(false));
@@ -181,18 +178,18 @@ class ExecutionTest {
                 .post(Entity.entity("run something", MediaType.TEXT_PLAIN_TYPE))) {
             assertThat(response.getStatus(), is(202));
             ClientEndpointConfig config = ClientEndpointConfig.Builder.create()
-                    .configurator(new TokenConfigurator(getToken()))
+                    .configurator(new OriginConfigurator(ORIGIN))
                     .build();
             try (Session session = ContainerProvider.getWebSocketContainer()
                     .connectToServer(new Client(), config, uri)) {
                 try {
                     session.getBasicRemote().sendText("STOP");
-                    assertEquals("Ejecutando comando: run something" + System.lineSeparator(),
-                                 MESSAGES.poll(15, TimeUnit.SECONDS));
-                    assertEquals("Una línea" + System.lineSeparator(),
-                                 MESSAGES.poll(10, TimeUnit.SECONDS));
-                    assertEquals("Otra línea" + System.lineSeparator(),
-                                 MESSAGES.poll(10, TimeUnit.SECONDS));
+                    assertEquals("Executing command: run something" + System.lineSeparator(),
+                            MESSAGES.poll(10, TimeUnit.SECONDS));
+                    assertEquals("One line" + System.lineSeparator(),
+                            MESSAGES.poll(10, TimeUnit.SECONDS));
+                    assertEquals("Another line" + System.lineSeparator(),
+                            MESSAGES.poll(10, TimeUnit.SECONDS));
                 } finally {
                     await().atMost(Duration.ofSeconds(20))
                             .until(session::isOpen, is(false));
@@ -207,7 +204,7 @@ class ExecutionTest {
     @Test
     void testExecutionSocketWhenSendInvalidMessageWithSuccess() throws Exception {
         ClientEndpointConfig config = ClientEndpointConfig.Builder.create()
-                .configurator(new TokenConfigurator(getToken()))
+                .configurator(new OriginConfigurator(ORIGIN))
                 .build();
         try (Session session = ContainerProvider.getWebSocketContainer().connectToServer(new Client(), config, uri)) {
             session.getBasicRemote().sendText("ABC");
@@ -253,17 +250,17 @@ class ExecutionTest {
         }
     }
 
-    private static class TokenConfigurator extends ClientEndpointConfig.Configurator {
+    private static class OriginConfigurator extends ClientEndpointConfig.Configurator {
 
-        private final String token;
+        private final String origin;
 
-        public TokenConfigurator(String token) {
-            this.token = token;
+        public OriginConfigurator(String origin) {
+            this.origin = origin;
         }
 
         @Override
         public void beforeRequest(Map<String, List<String>> headers) {
-            headers.put(HEADER, List.of(token));
+            headers.put(HeaderNames.ORIGIN_NAME, List.of(origin));
         }
     }
 

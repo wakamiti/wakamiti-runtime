@@ -30,17 +30,17 @@ public class DummyWakamitiRunner implements WakamitiRunner {
 
         try {
             Thread.sleep(Duration.ofSeconds(3));
-            LOGGER.info("Ejecutando comando: {}", command);
+            LOGGER.info("Executing command: {}", command);
             Thread.sleep(Duration.ofSeconds(1));
-            LOGGER.trace("Esto no debería salir al ws");
-            LOGGER.info("Una línea");
+            LOGGER.trace("This should not be output to ws");
+            LOGGER.info("One line");
             Thread.sleep(Duration.ofSeconds(2));
-            LOGGER.info("Otra línea");
+            LOGGER.info("Another line");
             Thread.sleep(Duration.ofSeconds(3));
             if (!started.get()) {
                 return 1;
             }
-            LOGGER.info("Si se ha cancelado la ejecución, esta línea no debería salir");
+            LOGGER.info("If execution has been cancelled, this line should not appear");
             Thread.sleep(Duration.ofSeconds(1));
         } catch (InterruptedException _) {
             Thread.currentThread().interrupt();

@@ -17,6 +17,8 @@ server:
     path: ${server.system.path}/log
     level: INFO
 
+  auth:
+    origin: waka.cli
 
 mp:
   openapi:

@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	HEADER = "X-Wakamiti-Token"
+	HEADER = "Origin"
 )
 
 // Client handles communication with the Wakamiti service.
@@ -67,7 +67,7 @@ func (c *Client) DoPostText(ctx context.Context, url, body string) error {
 	req.Header.Set("Content-Type", "text/plain; charset=utf-8")
 
 	httpClient := &http.Client{}
-	req.Header.Set(HEADER, c.Config.Token)
+	req.Header.Set(HEADER, c.Config.Origin)
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("request failed: %w", err)
@@ -85,7 +85,7 @@ func (c *Client) DoPostText(ctx context.Context, url, body string) error {
 func (c *Client) StreamWS(ctx context.Context, wsURL string) (int, error) {
 	d := websocket.Dialer{HandshakeTimeout: 10 * time.Second}
 	conn, _, err := d.DialContext(ctx, wsURL, http.Header{
-		HEADER: []string{c.Config.Token},
+		HEADER: []string{c.Config.Origin},
 	})
 	if err != nil {
 		return 1, fmt.Errorf("failed to connect to WebSocket: %w", err)
