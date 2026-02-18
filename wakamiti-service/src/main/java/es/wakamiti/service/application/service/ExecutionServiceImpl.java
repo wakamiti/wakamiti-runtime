@@ -47,56 +47,69 @@ public class ExecutionServiceImpl implements ExecutionService {
         this.publisher = publisher;
     }
 
-
     /**
-     * Executes a system command asynchronously and streams output to logger.
+     * Executes a system command asynchronously and outputs the result to the log.
+     * <p>
+     * The flow is as follows:
+     * 1. Validates that the command is not empty.
+     * 2. Checks if an execution is already in progress (only one is allowed).
+     * 3. Launches the execution in a separate thread (CompletableFuture).
+     * 4. Upon completion, notifies the result and clears the log event publisher.
      *
-     * <p>The method uses a single-threaded ExecutorService to ensure commands
-     * are executed sequentially. This design choice prevents resource conflicts
-     * and maintains predictable execution order, while still providing
-     * asynchronous behavior for the REST API clients.</p>
-     *
-     * @param command the system command to execute
-     *
-     * @throws IllegalArgumentException if the command is null, empty or wrong
-     *                                  commands
-     * @throws ResourceException        if there is already an execution in
-     *                                  progress
+     * @param command The system command to execute.
+     * @throws IllegalArgumentException If the command is null or empty.
+     * @throws ResourceException        If an execution is already active.
      */
     @Override
     public void execute(
             String command
     ) throws IllegalArgumentException, ResourceException {
-        if (command == null || command.trim().isEmpty()) {
-            throw new IllegalArgumentException("Command cannot be null or empty");
-        }
+        validateCommand(command);
+        checkConcurrency();
 
-        if (running.getAndSet(true)) {
-            throw new ResourceException("Maximum concurrent executions reached. Please try again later.");
-        }
+        LOGGER.info("Starting command execution: {}", command);
 
         CompletableFuture.supplyAsync(() -> runner.run(command))
                 .handle((result, ex) -> {
                     if (ex != null) {
-                        LOGGER.error("Error occurred while running wakamiti service application", ex);
-                        notifier.notify(1);
+                        LOGGER.error("Error during command execution: {}", command, ex);
+                        notifier.notify(1); // Notify failure (default code 1)
                     } else {
+                        LOGGER.info("Command finished with result: {}", result);
                         notifier.notify(result);
                     }
                     return null;
                 })
-                .whenComplete((_, _) -> {
-                    try {
-                        publisher.clear();
-                    } finally {
-                        running.set(false);
-                    }
-                })
-        ;
+                .whenComplete((_, _) -> cleanup());
     }
 
+    /**
+     * Stops the current execution if possible.
+     */
     public void stop() {
+        LOGGER.info("Requested stop of current command.");
         runner.stop();
     }
 
+    private void validateCommand(
+            String command
+    ) {
+        if (command == null || command.trim().isEmpty()) {
+            throw new IllegalArgumentException("Command cannot be null or empty");
+        }
+    }
+
+    private void checkConcurrency() {
+        if (running.getAndSet(true)) {
+            throw new ResourceException("An execution is already in progress. Please wait for it to finish.");
+        }
+    }
+
+    private void cleanup() {
+        try {
+            publisher.clear();
+        } finally {
+            running.set(false);
+        }
+    }
 }

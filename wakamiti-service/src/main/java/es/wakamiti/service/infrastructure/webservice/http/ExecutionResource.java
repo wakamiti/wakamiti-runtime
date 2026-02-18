@@ -235,31 +235,31 @@ public class ExecutionResource {
             executionService.execute(command);
         } catch (ResourceException _) {
             // Rate limiting - too many concurrent executions
-            return Response.status(Response.Status.TOO_MANY_REQUESTS)
-                    .entity("Maximum concurrent executions reached. Please try again later.")
-                    .type(MediaType.TEXT_PLAIN)
-                    .build();
+            return errorResponse(Response.Status.TOO_MANY_REQUESTS, "Maximum concurrent executions reached. Please try again later.");
         } catch (NotFoundException ex) {
             // Not found - command does not exist
-            return Response.status(Response.Status.NOT_FOUND)
-                    .entity(ex.getMessage())
-                    .type(MediaType.TEXT_PLAIN)
-                    .build();
+            return errorResponse(Response.Status.NOT_FOUND, ex.getMessage());
         } catch (IllegalArgumentException ex) {
             // Invalid input - null, empty, or improperly formatted command
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(ex.getMessage())
-                    .type(MediaType.TEXT_PLAIN)
-                    .build();
+            return errorResponse(Response.Status.BAD_REQUEST, ex.getMessage());
         } catch (Exception ex) {
             // Unexpected system error during command submission
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity("Failed to submit command for execution: " + ex.getMessage())
-                    .type(MediaType.TEXT_PLAIN)
-                    .build();
+            LOGGER.error("Uncontrolled error during command execution", ex);
+            return errorResponse(Response.Status.INTERNAL_SERVER_ERROR, "Failed to submit command for execution: " + ex.getMessage());
         }
-
         return Response.accepted().build();
     }
 
+    /**
+     * Creates a standardized plain text error response.
+     */
+    private Response errorResponse(
+            Response.Status status,
+            String message
+    ) {
+        return Response.status(status)
+                .entity(message)
+                .type(MediaType.TEXT_PLAIN)
+                .build();
+    }
 }

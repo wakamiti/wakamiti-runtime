@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -78,7 +79,7 @@ func NewConfig() (*Config, error) {
 		ServiceHost: props["server.host"],
 		ServicePort: props["server.port"],
 		Origin:      props["server.auth.origin"],
-	}, nil
+	}, validateConfig(props["server.host"], props["server.port"], props["server.auth.origin"])
 }
 
 func unescapePropertiesValue(s string) string {
@@ -127,7 +128,6 @@ func LoadProperties(filename string) (map[string]string, error) {
 			key := strings.TrimSpace(parts[0])
 			value := strings.TrimSpace(parts[1])
 			value = unescapePropertiesValue(value)
-			value = filepath.Clean(value)
 			props[key] = value
 		}
 	}
@@ -166,4 +166,25 @@ func LoadProperties(filename string) (map[string]string, error) {
 	}
 
 	return props, nil
+}
+
+func validateConfig(serviceHost, servicePort, origin string) error {
+	if strings.TrimSpace(serviceHost) == "" {
+		return errorsConfig("server.host is required")
+	}
+	if strings.TrimSpace(servicePort) == "" {
+		return errorsConfig("server.port is required")
+	}
+	port, err := strconv.Atoi(strings.TrimSpace(servicePort))
+	if err != nil || port < 1 || port > 65535 {
+		return errorsConfig("server.port must be a valid TCP port (1-65535)")
+	}
+	if strings.TrimSpace(origin) == "" {
+		return errorsConfig("server.auth.origin is required")
+	}
+	return nil
+}
+
+func errorsConfig(message string) error {
+	return fmt.Errorf("invalid configuration: %s", message)
 }

@@ -37,7 +37,7 @@ import java.io.IOException;
 public class ExecutionSocket {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(WakamitiServiceApplication.NAME);
-    private static final String STOP = "STOP";
+    private static final String STOP_COMMAND = "STOP";
 
     private final ExecutionService service;
     private final LogEventPublisher<Session> publisher;
@@ -52,7 +52,7 @@ public class ExecutionSocket {
         this.service = service;
         this.publisher = publisher;
         this.notifier = notifier;
-        LOGGER.trace("WebSocket created");
+        LOGGER.trace("WebSocket server initialized");
     }
 
     /**
@@ -77,7 +77,7 @@ public class ExecutionSocket {
     public void onOpen(
             Session session
     ) {
-        LOGGER.trace("WebSocket open for session {}", session.getId());
+        LOGGER.trace("New WebSocket connection established: {}", session.getId());
         publisher.subscribe(session);
         notifier.addObserver(session);
     }
@@ -93,7 +93,8 @@ public class ExecutionSocket {
             String message,
             Session session
     ) {
-        if (STOP.equals(message)) {
+        if (STOP_COMMAND.equals(message)) {
+            LOGGER.info("Received stop command from client: {}", session.getId());
             service.stop();
         } else {
             throw new IllegalArgumentException("Invalid message received: " + message);
@@ -111,7 +112,7 @@ public class ExecutionSocket {
             Session session,
             Throwable error
     ) throws IOException {
-        LOGGER.error("WebSocket error occurred for session {}", session.getId(), error);
+        LOGGER.error("WebSocket error (session {}): {}", session.getId(), error.getMessage());
         session.close(new CloseReason(CloseReason.CloseCodes.CANNOT_ACCEPT, error.getMessage()));
     }
 
@@ -145,15 +146,12 @@ public class ExecutionSocket {
             Session session,
             CloseReason reason
     ) {
-        LOGGER.trace("WebSocket closed for session {}", session.getId());
+        LOGGER.trace("WebSocket connection closed: {}", session.getId());
         publisher.unsubscribe(session);
         notifier.removeObserver(session);
 
         if (!reason.getCloseCode().equals(CloseReason.CloseCodes.NORMAL_CLOSURE)) {
-            LOGGER.warn("WebSocket connection closed abnormally for session {}: {} - {}",
-                        session.getId(), reason.getCloseCode(), reason.getReasonPhrase());
+            LOGGER.warn("Connection closed abnormally ({}): {}", reason.getCloseCode(), reason.getReasonPhrase());
         }
     }
-
 }
-

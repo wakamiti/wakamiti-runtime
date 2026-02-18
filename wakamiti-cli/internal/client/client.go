@@ -22,7 +22,14 @@ import (
 )
 
 const (
+	// HEADER is the HTTP header used by the backend to authorize requests by origin.
 	HEADER = "Origin"
+	// defaultHTTPTimeout prevents hanging forever when the service is unreachable.
+	defaultHTTPTimeout = 15 * time.Second
+	// maxErrorBodyBytes avoids reading unbounded error bodies into memory.
+	maxErrorBodyBytes = 4096
+	// stopMessageWriteWait bounds how long we wait while trying to send STOP on cancellation.
+	stopMessageWriteWait = 2 * time.Second
 )
 
 // Client handles communication with the Wakamiti service.
@@ -60,13 +67,13 @@ func (c *Client) Run(ctx context.Context, args []string) int {
 
 // DoPostText sends a POST request with plain text body to the specified URL.
 func (c *Client) DoPostText(ctx context.Context, url, body string) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBufferString(body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, strings.NewReader(body))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 	req.Header.Set("Content-Type", "text/plain; charset=utf-8")
 
-	httpClient := &http.Client{}
+	httpClient := &http.Client{Timeout: defaultHTTPTimeout}
 	req.Header.Set(HEADER, c.Config.Origin)
 	resp, err := httpClient.Do(req)
 	if err != nil {
@@ -75,7 +82,7 @@ func (c *Client) DoPostText(ctx context.Context, url, body string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		respBody, _ := io.ReadAll(resp.Body)
+		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, maxErrorBodyBytes))
 		return fmt.Errorf("service returned status %s: %s", resp.Status, strings.TrimSpace(string(respBody)))
 	}
 	return nil
@@ -119,7 +126,9 @@ func (c *Client) StreamWS(ctx context.Context, wsURL string) (int, error) {
 		return res.exitCode, res.err
 	case <-ctx.Done():
 		fmt.Fprintln(os.Stderr, "> Stop request sent. The application will stop when the server closes the session.")
+		_ = conn.SetWriteDeadline(time.Now().Add(stopMessageWriteWait))
 		_ = conn.WriteMessage(websocket.TextMessage, []byte("STOP"))
+		_ = conn.SetWriteDeadline(time.Time{})
 		select {
 		case res := <-resultChan:
 			return res.exitCode, res.err
