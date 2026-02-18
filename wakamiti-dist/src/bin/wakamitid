@@ -75,7 +75,7 @@ fi
 
 # shellcheck disable=SC2154
 if [ -z "$WAKAMITI_PROPERTIES" ]; then
-  WAKAMITI_PROPERTIES="$WAKAMITI_BIN_DIR\wakamiti.properties"
+  WAKAMITI_PROPERTIES="$WAKAMITI_BIN_DIR/wakamiti.properties"
 fi
 WAKAMITI_PROPERTIES_PROPERTY="-Dwakamiti.properties.file=$WAKAMITI_PROPERTIES"
 

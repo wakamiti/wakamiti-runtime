@@ -57,7 +57,7 @@ public class WakamitiServiceApplication {
             // 1. Definition of configuration sources by priority order
             var sources = new LinkedList<>(List.of(
                     ConfigSources.systemProperties(),
-                    ConfigSources.file(System.getProperty("wakamiti.properties.file")).optional().build(),
+                    ConfigSources.file(System.getProperty("wakamiti.properties.file")).build(),
                     ConfigSources.classpath("application.yml").build()
             ));
             Config config = Config.builder().sources(sources).build();
