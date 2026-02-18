@@ -17,6 +17,8 @@ import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -59,23 +61,23 @@ public class ExecutionServiceImpl implements ExecutionService {
      * 3. Launches the execution in a separate thread (CompletableFuture).
      * 4. Upon completion, notifies the result and clears the log event publisher.
      *
-     * @param command The system command to execute.
-     * @throws IllegalArgumentException If the command is null or empty.
+     * @param argv The command and arguments to execute.
+     * @throws IllegalArgumentException If the command list is null or empty.
      * @throws ResourceException        If an execution is already active.
      */
     @Override
     public void execute(
-            String command
+            List<String> argv
     ) throws IllegalArgumentException, ResourceException {
-        validateCommand(command);
+        validateCommand(argv);
         checkConcurrency();
 
-        LOGGER.info("Starting command execution: {}", command);
+        LOGGER.info("Starting command execution: {}", String.join(" ", argv));
 
-        CompletableFuture.supplyAsync(() -> runner.run(command))
+        CompletableFuture.supplyAsync(() -> runner.run(argv))
                 .handle((result, ex) -> {
                     if (ex != null) {
-                        LOGGER.error("Error during command execution: {}", command, ex);
+                        LOGGER.error("Error during command execution: {}", String.join(" ", argv), ex);
                         notifier.notify(1); // Notify failure (default code 1)
                     } else {
                         LOGGER.info("Command finished with result: {}", result);
@@ -95,10 +97,13 @@ public class ExecutionServiceImpl implements ExecutionService {
     }
 
     private void validateCommand(
-            String command
+            List<String> argv
     ) {
-        if (command == null || command.trim().isEmpty()) {
-            throw new IllegalArgumentException("Command cannot be null or empty");
+        if (argv == null || argv.isEmpty()) {
+            throw new IllegalArgumentException("argv cannot be null or empty");
+        }
+        if (argv.getFirst().trim().isEmpty()) {
+            throw new IllegalArgumentException("argv[0] cannot be empty");
         }
     }
 

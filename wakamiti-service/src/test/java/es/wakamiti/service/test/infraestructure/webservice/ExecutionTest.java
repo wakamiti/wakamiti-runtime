@@ -15,6 +15,7 @@ import jakarta.websocket.*;
 import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.client.Invocation;
 import jakarta.ws.rs.client.WebTarget;
+import jakarta.ws.rs.core.GenericType;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.junit.jupiter.api.AfterEach;
@@ -22,17 +23,19 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 import static es.wakamiti.service.test.infraestructure.webservice.ExecutionTest.ORIGIN;
 import static org.awaitility.Awaitility.await;
@@ -93,7 +96,7 @@ class ExecutionTest {
     @Test
     void testExecutionWithSuccess() throws Exception {
         try (Response response = request("exec")
-                .post(Entity.entity("run something", MediaType.TEXT_PLAIN_TYPE))) {
+                .post(Entity.entity("[\"run\",\"something\"]", MediaType.APPLICATION_JSON_TYPE))) {
             assertThat(response.getStatus(), is(202));
             ClientEndpointConfig config = ClientEndpointConfig.Builder.create()
                     .configurator(new OriginConfigurator(ORIGIN))
@@ -120,10 +123,10 @@ class ExecutionTest {
 
     @DisplayName("Execution with bad request error")
     @ParameterizedTest(name = "[{index}] when entity={argumentsWithNames}")
-    @NullAndEmptySource
-    void testExecutionWithBadRequestError(String entity) {
+    @MethodSource("bodies")
+    void testExecutionWithBadRequestError(List<String> entity) {
         try (Response response = request("exec")
-                .post(Entity.entity(entity, MediaType.TEXT_PLAIN_TYPE))) {
+                .post(Entity.entity(entity, MediaType.APPLICATION_JSON))) {
             assertThat(response.getStatus(), is(400));
         }
     }
@@ -132,7 +135,7 @@ class ExecutionTest {
     @Test
     void testExecutionWithUnauthorizedError() {
         try (Response response = target.path("exec").request()
-                .post(Entity.entity("run something", MediaType.TEXT_PLAIN_TYPE))) {
+                .post(Entity.entity(List.of("run","something"), MediaType.APPLICATION_JSON_TYPE))) {
             assertThat(response.getStatus(), is(401));
         }
     }
@@ -140,13 +143,12 @@ class ExecutionTest {
     @DisplayName("Execution with too many requests error")
     @Test
     void testExecutionWithTooManyRequestsError() throws Exception {
-        try (Response response = request("exec")
-                .post(Entity.entity("abc", MediaType.TEXT_PLAIN_TYPE))) {
+        var entity = Entity.entity(List.of("abc"), MediaType.APPLICATION_JSON_TYPE);
+        try (Response response = request("exec").post(entity)) {
             assertThat(response.getStatus(), is(202));
         }
         await().pollDelay(Duration.ofSeconds(1)).until(() -> true);
-        try (Response response = request("exec")
-                .post(Entity.entity("abc", MediaType.TEXT_PLAIN_TYPE))) {
+        try (Response response = request("exec").post(entity)) {
             assertThat(response.getStatus(), is(429));
             ClientEndpointConfig config = ClientEndpointConfig.Builder.create()
                     .configurator(new OriginConfigurator(ORIGIN))
@@ -175,7 +177,7 @@ class ExecutionTest {
     @Test
     void testExecutionSocketWhenSendStopWithSuccess() throws Exception {
         try (Response response = request("exec")
-                .post(Entity.entity("run something", MediaType.TEXT_PLAIN_TYPE))) {
+                .post(Entity.entity(List.of("run","something"), MediaType.APPLICATION_JSON_TYPE))) {
             assertThat(response.getStatus(), is(202));
             ClientEndpointConfig config = ClientEndpointConfig.Builder.create()
                     .configurator(new OriginConfigurator(ORIGIN))
@@ -264,4 +266,11 @@ class ExecutionTest {
         }
     }
 
+    static Stream<Arguments> bodies(){
+        return Stream.of(
+                Arguments.of((Object) null),
+                Arguments.of(List.of()),
+                Arguments.of(List.of(""))
+        );
+    }
 }

@@ -8,6 +8,8 @@ package es.wakamiti.service.domain.api;
 
 import io.helidon.common.configurable.ResourceException;
 
+import java.util.List;
+
 
 /**
  * Service interface for asynchronous command execution with real-time
@@ -31,7 +33,7 @@ import io.helidon.common.configurable.ResourceException;
  * 
  * <p>Integration Architecture:</p>
  * <ul>
- *   <li><strong>REST Layer</strong>: CommandResource accepts HTTP
+ *   <li><strong>REST Layer</strong>: ExecutionResource accepts HTTP
  *   requests and delegates to this service</li>
  *   <li><strong>WebSocket Layer</strong>: ExecutionSocket manages
  *   client connections for real-time updates</li>
@@ -44,9 +46,9 @@ import io.helidon.common.configurable.ResourceException;
  * <p>Execution Flow:</p>
  * <ol>
  *   <li>Client submits command via REST API (POST /exec)</li>
- *   <li>CommandResource calls {@link #execute(String)} method</li>
+ *   <li>ExecutionResource calls {@link #execute(List)} method</li>
  *   <li>Command is queued for asynchronous execution</li>
- *   <li>HTTP 204 No Content response is returned immediately</li>
+ *   <li>HTTP 202 Accepted response is returned immediately</li>
  *   <li>Command execution begins in background thread</li>
  *   <li>Execution events are broadcast to WebSocket clients via /execution endpoint</li>
  *   <li>Process output is streamed in real-time as it's generated</li>
@@ -81,8 +83,8 @@ import io.helidon.common.configurable.ResourceException;
  * 
  * // In REST endpoint
  * try {
- *     executionService.execute("ls -la /tmp");
- *     return Response.noContent().build(); // 204 - Command queued successfully
+ *     executionService.execute(List.of("ls", "-la", "/tmp"));
+ *     return Response.accepted().build(); // 202 - Command queued successfully
  * } catch (IllegalArgumentException e) {
  *     return Response.status(400).entity(e.getMessage()).build();
  * } catch (ResourceException e) {
@@ -142,9 +144,9 @@ public interface ExecutionService {
      * maintains predictable execution order, while still providing asynchronous
      * behavior for the REST API clients.</p>
      * 
-     * @param command the system command to execute (must not be null or empty)
+     * @param argv command arguments to execute (must not be null or empty)
      * 
-     * @throws IllegalArgumentException if command is null, empty, or contains only whitespace.
+     * @throws IllegalArgumentException if argv is null, empty, or contains invalid values.
      *         This exception should be caught by the REST layer and converted to HTTP 400.
      * @throws ResourceException if the system is currently
      *         at maximum capacity for concurrent executions. This should be caught by the
@@ -155,7 +157,7 @@ public interface ExecutionService {
      *
      */
     void execute(
-            String command
+            List<String> argv
     );
 
     /**

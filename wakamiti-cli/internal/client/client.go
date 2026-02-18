@@ -8,6 +8,7 @@ package client
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -44,8 +45,8 @@ type Client struct {
 // Run orchestrates the full client workflow and returns the process exit code.
 //
 // Flow:
-// 1. Build command text from CLI arguments.
-// 2. POST the command to /exec.
+// 1. Keep CLI arguments as an ordered list.
+// 2. POST the JSON array to /exec.
 // 3. Open WebSocket /exec/out and stream logs until the server closes.
 //
 // Exit code policy:
@@ -57,13 +58,11 @@ type Client struct {
 //
 //	code := cli.Run(ctx, []string{"--env", "qa", "--tags", "@smoke"})
 func (c *Client) Run(ctx context.Context, args []string) int {
-	bodyTxt := strings.Join(args, " ")
-
 	postURL := fmt.Sprintf("http://%s:%s/exec", c.Config.ServiceHost, c.Config.ServicePort)
 	wsURL := fmt.Sprintf("ws://%s:%s/exec/out", c.Config.ServiceHost, c.Config.ServicePort)
 
 	// 1) Asynchronous POST (we don't wait for result, but validate status)
-	if err := c.DoPostText(ctx, postURL, bodyTxt); err != nil {
+	if err := c.DoPostJSONArgs(ctx, postURL, args); err != nil {
 		if !errors.Is(err, context.Canceled) {
 			fmt.Fprintf(os.Stderr, "Error starting execution: %v\n", err)
 		}
@@ -83,18 +82,22 @@ func (c *Client) Run(ctx context.Context, args []string) int {
 	return exitCode
 }
 
-// DoPostText sends the command as text/plain to the execution endpoint.
+// DoPostJSONArgs sends command arguments as a JSON array to the execution endpoint.
 //
 // Security and resilience notes:
 // - it always sets the configured Origin header expected by the server filter,
 // - it uses a bounded HTTP timeout,
 // - on non-2xx responses, it reads only a limited amount of response body.
-func (c *Client) DoPostText(ctx context.Context, url, body string) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, strings.NewReader(body))
+func (c *Client) DoPostJSONArgs(ctx context.Context, url string, args []string) error {
+	payload, err := json.Marshal(args)
+	if err != nil {
+		return fmt.Errorf("failed to marshal args payload: %w", err)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, strings.NewReader(string(payload)))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
-	req.Header.Set("Content-Type", "text/plain; charset=utf-8")
+	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 
 	httpClient := &http.Client{Timeout: defaultHTTPTimeout}
 	req.Header.Set(HEADER, c.Config.Origin)

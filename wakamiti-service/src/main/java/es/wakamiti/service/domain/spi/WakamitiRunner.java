@@ -5,6 +5,8 @@
  */
 package es.wakamiti.service.domain.spi;
 
+import java.util.List;
+
 
 /**
  * Defines the contract for a command execution engine.
@@ -30,20 +32,20 @@ public interface WakamitiRunner {
      * that calls this method will wait until the command has finished its execution.
      * The implementation should capture the exit code of the process and return it.
      *
-     * @param command The system command to be executed (e.g., "mvn clean install").
-     *                Must not be null or empty.
+     * @param argv The command plus its arguments to execute.
+     *             Must not be null or empty.
      * @return The exit code of the executed command. By convention, {@code 0} indicates
      *         successful execution, while a non-zero value indicates an error.
      */
     int run(
-            String command
+            List<String> argv
     );
 
     /**
      * Attempts to stop the currently running command.
      * <p>
      * This method is called to gracefully or forcefully terminate the process
-     * started by the {@link #run(String)} method. Implementations should handle
+     * started by the {@link #run(List)} method. Implementations should handle
      * the logic for interrupting the execution, such as destroying the system process.
      * <p>
      * If no command is currently running, this method should do nothing and return

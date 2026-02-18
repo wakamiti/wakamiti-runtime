@@ -20,8 +20,8 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-func TestDoPostText_SendsPlainTextBody(t *testing.T) {
-	wantBody := "--foo bar --baz=1"
+func TestDoPostJSONArgs_SendsJSONListBody(t *testing.T) {
+	wantArgs := []string{"--foo", "bar", "--baz=1"}
 	wantOrigin := "test-origin"
 	client := &Client{
 		Config: Config{Origin: wantOrigin},
@@ -32,41 +32,41 @@ func TestDoPostText_SendsPlainTextBody(t *testing.T) {
 			t.Fatalf("method=%s want POST", r.Method)
 		}
 		ct := r.Header.Get("Content-Type")
-		if !strings.HasPrefix(ct, "text/plain") {
-			t.Fatalf("Content-Type=%q want text/plain", ct)
+		if !strings.HasPrefix(ct, "application/json") {
+			t.Fatalf("Content-Type=%q want application/json", ct)
 		}
 		origin := r.Header.Get(HEADER)
 		if origin != wantOrigin {
 			t.Fatalf("Origin=%q want %q", origin, wantOrigin)
 		}
 		b, _ := io.ReadAll(r.Body)
-		if string(b) != wantBody {
-			t.Fatalf("body=%q want %q", string(b), wantBody)
+		if string(b) != "[\"--foo\",\"bar\",\"--baz=1\"]" {
+			t.Fatalf("body=%q want JSON array", string(b))
 		}
 		w.WriteHeader(202)
 	}))
 	defer srv.Close()
 
-	if err := client.DoPostText(context.Background(), srv.URL, wantBody); err != nil {
+	if err := client.DoPostJSONArgs(context.Background(), srv.URL, wantArgs); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
-func TestDoPostText_Non2xxFails(t *testing.T) {
+func TestDoPostJSONArgs_Non2xxFails(t *testing.T) {
 	client := &Client{}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "boom", http.StatusBadRequest)
 	}))
 	defer srv.Close()
 
-	if client.DoPostText(context.Background(), srv.URL, "x") == nil {
+	if client.DoPostJSONArgs(context.Background(), srv.URL, []string{"x"}) == nil {
 		t.Fatal("expected error, got nil")
 	}
 }
 
-func TestDoPostText_NetworkError(t *testing.T) {
+func TestDoPostJSONArgs_NetworkError(t *testing.T) {
 	client := &Client{}
-	if client.DoPostText(context.Background(), "http://localhost:1", "x") == nil {
+	if client.DoPostJSONArgs(context.Background(), "http://localhost:1", []string{"x"}) == nil {
 		t.Fatal("expected error, got nil")
 	}
 }

@@ -32,6 +32,8 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
+
 
 /**
  * REST resource for executing system commands asynchronously.
@@ -66,9 +68,9 @@ import org.slf4j.LoggerFactory;
  * <p>Usage Example:</p>
  * <pre>{@code
  * POST /exec
- * Content-Type: text/plain
+ * Content-Type: application/json
  *
- * ls -la /tmp
+ * ["ls","-la","/tmp"]
  * }</pre>
  */
 @Path("/exec")
@@ -110,7 +112,7 @@ public class ExecutionResource {
     /**
      * Executes a system command asynchronously.
      *
-     * <p>This endpoint accepts a command as plain text and submits it for asynchronous execution.
+     * <p>This endpoint accepts a command as a list of arguments and submits it for asynchronous execution.
      * The command will be processed in the background by the ExecutionService, and its output
      * will be streamed in real-time through the WebSocket endpoint at '/execution'.</p>
      *
@@ -133,20 +135,20 @@ public class ExecutionResource {
      *   <li>Resource efficiency - HTTP connection is freed immediately</li>
      * </ul>
      *
-     * @param command the system command to execute (plain text format)
+     * @param argv command and arguments to execute (JSON array)
      * @return HTTP response indicating submission status
-     * @throws IllegalArgumentException if command is null, empty, or invalid
-     * @see ExecutionService#execute(String)
+     * @throws IllegalArgumentException if argv is null, empty, or invalid
+     * @see ExecutionService#execute(List)
      */
     @POST
-    @Consumes(MediaType.TEXT_PLAIN)
+    @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.TEXT_PLAIN)
     @Operation(
             operationId = "execution",
             summary = "Execute system command asynchronously",
-            description = "Submits a system command for asynchronous execution. The command output will be " +
+            description = "Submits a command argument list for asynchronous execution. The command output will be " +
                     "streamed in real-time through the WebSocket endpoint at '/execution'. " +
-                    "Common commands include shell commands, scripts, or system utilities."
+                    "Example payload: [\"run\",\"--profile\",\"qa\"]"
     )
     @APIResponse(
             responseCode = "202",
@@ -156,19 +158,18 @@ public class ExecutionResource {
     )
     @APIResponse(
             responseCode = "400",
-            description = "Bad Request - Invalid command format, empty command, or malformed request. " +
-                    "Ensure the command is provided as plain text in the request body.",
+            description = "Bad Request - Invalid command payload, empty list, or malformed request.",
             content = @Content(
                     mediaType = MediaType.TEXT_PLAIN,
                     schema = @Schema(type = SchemaType.STRING),
                     examples = {
                             @ExampleObject(
-                                    name = "Empty Command Error",
-                                    value = "Command cannot be null or empty"
+                                    name = "Empty List Error",
+                                    value = "Command list cannot be null or empty"
                             ),
                             @ExampleObject(
                                     name = "Invalid Format Error",
-                                    value = "Invalid command format"
+                                    value = "First command item cannot be empty"
                             )
                     }
             )
@@ -219,20 +220,18 @@ public class ExecutionResource {
     )
     public Response execute(
             @RequestBody(
-                    description = "The system command to execute. Provide the complete command as plain text, " +
-                            "including any arguments and options. Examples: 'ls -la', 'echo Hello World', " +
-                            "'find /tmp -name \"*.txt\"'",
+                    description = "A JSON array where first element is the command and next elements are arguments.",
                     required = true,
                     content = @Content(
-                            mediaType = MediaType.TEXT_PLAIN,
-                            example = "ls -la /tmp",
-                            schema = @Schema(type = SchemaType.STRING, minLength = 1, maxLength = 1000)
+                            mediaType = MediaType.APPLICATION_JSON,
+                            example = "[\"ls\",\"-la\",\"/tmp\"]",
+                            schema = @Schema(type = SchemaType.ARRAY)
                     )
             )
-            String command
+            List<String> argv
     ) {
         try {
-            executionService.execute(command);
+            executionService.execute(argv);
         } catch (ResourceException _) {
             // Rate limiting - too many concurrent executions
             return errorResponse(Response.Status.TOO_MANY_REQUESTS, "Maximum concurrent executions reached. Please try again later.");

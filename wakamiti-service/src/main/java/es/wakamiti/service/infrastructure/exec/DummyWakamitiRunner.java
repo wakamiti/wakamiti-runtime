@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 
@@ -24,9 +25,10 @@ public class DummyWakamitiRunner implements WakamitiRunner {
 
     @Override
     public int run(
-            String command
+            List<String> argv
     ) {
         started.set(true);
+        String command = String.join(" ", argv);
 
         try {
             Thread.sleep(Duration.ofSeconds(3));
