@@ -83,7 +83,7 @@ func TestStreamWS_ProgressThenCloseReasonExitCode(t *testing.T) {
 		_ = c.WriteMessage(websocket.TextMessage, []byte("10%"))
 		_ = c.WriteMessage(websocket.TextMessage, []byte("50%"))
 
-		// cierre controlado con reason="0" (exit code)
+		// Controlled close with reason "0" (command exit code).
 		_ = c.WriteControl(
 			websocket.CloseMessage,
 			websocket.FormatCloseMessage(websocket.CloseNormalClosure, "0"),
@@ -91,7 +91,7 @@ func TestStreamWS_ProgressThenCloseReasonExitCode(t *testing.T) {
 		)
 	})
 
-	// Capturar stdout
+	// Capture stdout to assert streamed progress.
 	oldStdout := os.Stdout
 	r, w, _ := os.Pipe()
 	os.Stdout = w
@@ -162,7 +162,7 @@ func TestStreamWS_CtrlC_SendsSTOP_ServerClosesWithExitCode(t *testing.T) {
 				gotSTOP = true
 				mu.Unlock()
 
-				// servidor decide el resultado: reason="5"
+				// Server decides final command exit code using close reason "5".
 				_ = c.WriteControl(
 					websocket.CloseMessage,
 					websocket.FormatCloseMessage(websocket.CloseNormalClosure, "5"),
@@ -255,7 +255,7 @@ func TestStreamWS_ReadError(t *testing.T) {
 
 func TestRun_Success(t *testing.T) {
 	upgrader := websocket.Upgrader{
-		CheckOrigin: func(r *http.Request) bool { return true }, // Allow all origins for testing
+		CheckOrigin: func(r *http.Request) bool { return true }, // Test server accepts all origins.
 	}
 	wantOrigin := "test-origin"
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -271,7 +271,7 @@ func TestRun_Success(t *testing.T) {
 				}
 				defer c.Close()
 				_ = c.WriteMessage(websocket.TextMessage, []byte("progress"))
-				// Read STOP message
+				// Read STOP message sent after context cancellation.
 				_, msg, _ := c.ReadMessage()
 				if string(msg) == "STOP" {
 					_ = c.WriteControl(
@@ -302,7 +302,7 @@ func TestRun_Success(t *testing.T) {
 		},
 	}
 
-	// Capture stderr to avoid polluting test output and check for the stop message
+	// Capture stderr to keep test output clean.
 	oldStderr := os.Stderr
 	_, wErr, _ := os.Pipe()
 	os.Stderr = wErr
@@ -350,7 +350,7 @@ func TestRun_StreamError(t *testing.T) {
 		if r.Method == http.MethodPost {
 			w.WriteHeader(http.StatusAccepted)
 		} else {
-			// Fail WS dial
+			// Force WebSocket handshake failure.
 			http.Error(w, "no ws", http.StatusBadRequest)
 		}
 	})
@@ -381,7 +381,7 @@ func TestRun_StreamError(t *testing.T) {
 	}
 }
 
-// ---- WS test server helper ----
+// startWSServer creates a throwaway websocket server and returns ws:// URL.
 
 func startWSServer(t *testing.T, handler func(*websocket.Conn, *http.Request)) string {
 	t.Helper()

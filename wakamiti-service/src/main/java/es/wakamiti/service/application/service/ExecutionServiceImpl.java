@@ -22,14 +22,17 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 
 /**
- * Implementation of the ExecutionService that handles asynchronous command
- * execution.
+ * Implementation of {@link ExecutionService} that manages command execution asynchronously.
+ * <p>
+ * This class acts as the orchestrator between the user's request and the actual system execution,
+ * ensuring that only one command is executed at a time to prevent resource conflicts.
  */
 @ApplicationScoped
 public class ExecutionServiceImpl implements ExecutionService {
 
     private final static Logger LOGGER = LoggerFactory.getLogger(WakamitiServiceApplication.NAME);
 
+    /** Concurrency control to ensure sequential execution. */
     private final AtomicBoolean running = new AtomicBoolean(false);
 
     private final ExecutionNotifier<?> notifier;

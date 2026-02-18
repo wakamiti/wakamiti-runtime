@@ -158,5 +158,12 @@ public interface ExecutionService {
             String command
     );
 
+    /**
+     * Stops the execution service and releases resources.
+     * <p>
+     * This method should be called when the application is shutting down or when
+     * the service is no longer needed. It ensures that any running processes are
+     * terminated and that the executor service is shut down gracefully.
+     */
     void stop();
 }

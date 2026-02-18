@@ -7,7 +7,6 @@
 package client
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -32,12 +31,31 @@ const (
 	stopMessageWriteWait = 2 * time.Second
 )
 
-// Client handles communication with the Wakamiti service.
+// Client handles all network communication with the Wakamiti service.
+//
+// It is intentionally small: it only knows how to:
+// 1. submit a command through HTTP,
+// 2. consume live logs through WebSocket,
+// 3. translate close reasons into process exit codes.
 type Client struct {
 	Config Config
 }
 
-// Run executes the CLI logic.
+// Run orchestrates the full client workflow and returns the process exit code.
+//
+// Flow:
+// 1. Build command text from CLI arguments.
+// 2. POST the command to /exec.
+// 3. Open WebSocket /exec/out and stream logs until the server closes.
+//
+// Exit code policy:
+// - 255: command submission failed.
+// - 3: stream-level/client-side failure.
+// - N: server-provided command exit status.
+//
+// Example:
+//
+//	code := cli.Run(ctx, []string{"--env", "qa", "--tags", "@smoke"})
 func (c *Client) Run(ctx context.Context, args []string) int {
 	bodyTxt := strings.Join(args, " ")
 
@@ -65,7 +83,12 @@ func (c *Client) Run(ctx context.Context, args []string) int {
 	return exitCode
 }
 
-// DoPostText sends a POST request with plain text body to the specified URL.
+// DoPostText sends the command as text/plain to the execution endpoint.
+//
+// Security and resilience notes:
+// - it always sets the configured Origin header expected by the server filter,
+// - it uses a bounded HTTP timeout,
+// - on non-2xx responses, it reads only a limited amount of response body.
 func (c *Client) DoPostText(ctx context.Context, url, body string) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, strings.NewReader(body))
 	if err != nil {
@@ -88,7 +111,15 @@ func (c *Client) DoPostText(ctx context.Context, url, body string) error {
 	return nil
 }
 
-// StreamWS connects to a WebSocket URL and prints received messages to stdout.
+// StreamWS opens a WebSocket connection and streams server messages to stdout.
+//
+// Normal behavior:
+// - each non-empty incoming text message is printed as one output line,
+// - when the server closes the socket, the close reason is converted into an exit code.
+//
+// Cancellation behavior:
+// - when ctx is canceled (Ctrl+C), the client sends "STOP" to the server,
+// - it then waits briefly for a graceful close carrying the final exit code.
 func (c *Client) StreamWS(ctx context.Context, wsURL string) (int, error) {
 	d := websocket.Dialer{HandshakeTimeout: 10 * time.Second}
 	conn, _, err := d.DialContext(ctx, wsURL, http.Header{
@@ -138,7 +169,12 @@ func (c *Client) StreamWS(ctx context.Context, wsURL string) (int, error) {
 	}
 }
 
-// HandleServerClose interprets the WebSocket closure error to extract an exit code or error message.
+// HandleServerClose interprets WebSocket close errors into (exitCode, error).
+//
+// Convention used by the backend:
+// - Close reason with an integer (e.g. "0", "5") means command exit code.
+// - Non-numeric close reason means execution error message.
+// - Empty reason is treated as unknown close cause.
 func (c *Client) HandleServerClose(err error) (int, error) {
 	var ce *websocket.CloseError
 	if errors.As(err, &ce) {

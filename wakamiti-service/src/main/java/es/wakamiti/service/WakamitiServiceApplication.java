@@ -21,17 +21,36 @@ import java.util.Properties;
 import java.util.stream.Collectors;
 
 
+/**
+ * Main entry point for the Wakamiti service.
+ * <p>
+ * This class is responsible for initializing the Helidon server, configuring the system properties,
+ * and managing the persistence of the effective configuration.
+ */
 public class WakamitiServiceApplication {
 
+    /**
+     * Service identifier name, mainly used for the logging system.
+     */
     public static final String NAME = "service.wakamiti";
 
     private WakamitiServiceApplication() {
-        // Private constructor
+        // Private constructor to prevent instantiation of this utility class.
     }
 
+    /**
+     * Main method that starts the application.
+     * <p>
+     * Follows this flow:
+     * 1. Configures system properties required for Helidon.
+     * 2. Loads configuration from multiple sources (system, external file, classpath).
+     * 3. Applies environment variable mappings if they exist.
+     * 4. Saves a copy of the resulting properties ("effective properties").
+     * 5. Starts the Helidon MicroProfile server.
+     */
     static void main() {
-        // Fix for the Service Registry exception regarding java.lang.Cloneable
-        // This prevents the registry from failing when encountering standard marker interfaces
+        // Fix for a Service Registry exception related to java.lang.Cloneable.
+        // Prevents the registry from failing when encountering standard marker interfaces.
         System.setProperty("helidon.service-registry.check-unrecognized-contracts", "false");
 
         try {

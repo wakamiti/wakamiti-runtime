@@ -20,6 +20,20 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 
+/**
+ * A publisher implementation for broadcasting log events to WebSocket sessions.
+ * <p>
+ * This class maintains a collection of subscribers and handles the delivery of log
+ * messages to each session. Each session is associated with its own lock to ensure
+ * that log messages are sent in compliance with Jakarta WebSocket specifications.
+ * <p>
+ * The log messages are stored in a LogHistoryRepository, which allows for new
+ * subscribers to receive past messages upon subscription.
+ * <p>
+ * This class is marked with the @ApplicationScoped annotation, indicating that it
+ * is managed by the CDI container and will be shared across different instances
+ * within the same application context.
+ */
 @ApplicationScoped
 public class SessionLogEventPublisher implements LogEventPublisher<Session> {
 
@@ -37,6 +51,17 @@ public class SessionLogEventPublisher implements LogEventPublisher<Session> {
         this.history = history;
     }
 
+    /**
+     * Subscribes a WebSocket session to receive log messages.
+     * <p>
+     * This method processes all previously stored log messages and sends them
+     * to the specified session upon subscription. It then adds the session
+     * to the collection of subscribers to receive new log events. Each session
+     * is uniquely identified, allowing it to receive live updates as they occur.
+     *
+     * @param session The WebSocket session to subscribe for receiving log messages.
+     *                It cannot be null and must be in an open state to receive messages.
+     */
     @Override
     public void subscribe(
             Session session

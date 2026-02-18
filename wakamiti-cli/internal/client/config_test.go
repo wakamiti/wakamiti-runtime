@@ -8,10 +8,10 @@ import (
 )
 
 func TestNewConfig(t *testing.T) {
-	// Setup temporary directory for test files
+	// Set up temporary directory for test files.
 	tmpDir := Getenv("BUILD_DIR", t.TempDir())
 
-	// Create effective.properties
+	// Create effective.properties with final values used by the client.
 	effectivePropsContent := `
 server.host=192.168.1.100
 server.port=8080
@@ -22,10 +22,9 @@ server.auth.origin=test-origin
 		t.Fatalf("Failed to create effective.properties: %v", err)
 	}
 
-	// Create wakamiti.properties
+	// Create wakamiti.properties.
 	wakamitiPropsContent := "effective.properties=" + effectivePropsPath + "\n"
-	// We need to write this to the current working directory because NewConfig looks for "wakamiti.properties"
-	// So we'll change the working directory for the test
+	// NewConfig checks current working directory first, so move test process there.
 	originalWd, err := os.Getwd()
 	if err != nil {
 		t.Fatalf("Failed to get current working directory: %v", err)
@@ -40,7 +39,7 @@ server.auth.origin=test-origin
 		t.Fatalf("Failed to create wakamiti.properties: %v", err)
 	}
 
-	// Test NewConfig
+	// Validate merged config.
 	config, err := NewConfig()
 	if err != nil {
 		t.Fatalf("NewConfig failed: %v", err)
@@ -75,7 +74,7 @@ func TestNewConfig_MissingEffectiveProperties(t *testing.T) {
 	defer os.Chdir(originalWd)
 	os.Chdir(tmpDir)
 
-	// Create wakamiti.properties pointing to non-existent file
+	// Create wakamiti.properties pointing to non-existent file.
 	wakamitiPropsContent := "effective.properties=non-existent.properties\n"
 	os.WriteFile("wakamiti.properties", []byte(wakamitiPropsContent), 0644)
 
@@ -85,7 +84,7 @@ func TestNewConfig_MissingEffectiveProperties(t *testing.T) {
 	}
 }
 
-// Getenv retrieves an environment variable or returns a default value if not set.
+// Getenv retrieves an environment variable or returns a fallback value.
 func Getenv(key, defaultValue string) string {
 	value := strings.TrimSpace(os.Getenv(key))
 	if value == "" {

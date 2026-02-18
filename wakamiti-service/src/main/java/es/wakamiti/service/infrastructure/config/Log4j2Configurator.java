@@ -18,6 +18,12 @@ import org.slf4j.LoggerFactory;
 import java.util.Objects;
 
 
+/**
+ * Configures the Log4j2 logging system within the application context.
+ * This class is application-scoped, meaning it is instantiated once per application lifecycle.
+ * It integrates with the Log4j2 logging framework to dynamically configure appenders
+ * and customize log message broadcasting via WebSocket connections.
+ */
 @ApplicationScoped
 public class Log4j2Configurator {
 
@@ -30,6 +36,15 @@ public class Log4j2Configurator {
         this.publisher = publisher;
     }
 
+    /**
+     * Initializes the Log4j2 logging configuration for the application context.
+     * This method is triggered when the application context is fully initialized and ready.
+     * It locates the WebSocket appender ("WS") and associates it with the session log
+     * event publisher to enable real-time log streaming via WebSocket.
+     *
+     * @param init an event object that indicates the application context has been initialized.
+     *             It is observed to perform setup tasks upon application startup.
+     */
     public void initialize(
             @Observes @Initialized(ApplicationScoped.class) Object init
     ) {

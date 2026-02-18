@@ -15,14 +15,27 @@ import (
 	"strings"
 )
 
-// Config holds the configuration for the Wakamiti CLI.
+// Config contains the minimum runtime settings required by the CLI client.
+//
+// Values are loaded from Java-style .properties files (wakamiti.properties
+// and optionally an "effective.properties" file).
 type Config struct {
 	ServiceHost string
 	ServicePort string
 	Origin      string
 }
 
-// NewConfig creates a new Config instance by loading properties from files and environment variables.
+// NewConfig discovers and loads runtime configuration from disk.
+//
+// Resolution order:
+// 1. Look for "wakamiti.properties" in current working directory.
+// 2. If not found, look for it next to the executable.
+// 3. If "effective.properties" is declared, merge it on top.
+//
+// Mandatory keys after merge:
+// - server.host
+// - server.port
+// - server.auth.origin
 func NewConfig() (*Config, error) {
 	// 1. Try to find the installation directory
 	exePath, err := os.Executable()
@@ -107,8 +120,15 @@ func unescapePropertiesValue(s string) string {
 	return b.String()
 }
 
-// LoadProperties reads a properties file and returns a map of key-value pairs.
-// It supports variable substitution for ${user.home}.
+// LoadProperties parses a Java-style .properties file into key/value pairs.
+//
+// Supported features:
+// - comments starting with '#',
+// - escaping for ':', '=', space, '\', '#', '!',
+// - variable replacement for ${user.home},
+// - simple iterative replacement for ${other.property}.
+//
+// This function intentionally keeps parsing rules small and predictable.
 func LoadProperties(filename string) (map[string]string, error) {
 	props := make(map[string]string)
 	file, err := os.Open(filename)

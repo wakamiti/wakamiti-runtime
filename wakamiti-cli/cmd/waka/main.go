@@ -16,6 +16,10 @@ import (
 	"es.wakamiti/wakamiti-cli/internal/client"
 )
 
+// main is intentionally thin:
+// - it wires OS signal cancellation,
+// - delegates business flow to run,
+// - exits using the resulting code.
 func main() {
 	// Set up context with signal notification.
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -25,7 +29,12 @@ func main() {
 	os.Exit(exitCode)
 }
 
-// run contains the core application logic and returns an exit code.
+// run loads configuration, builds the client, and executes command flow.
+//
+// A non-zero return means either:
+// - configuration/bootstrap error,
+// - server start/stream failure,
+// - or command exit status propagated from backend.
 func run(ctx context.Context) int {
 	conf, err := client.NewConfig()
 	if err != nil {
