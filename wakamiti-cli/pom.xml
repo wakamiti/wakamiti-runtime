@@ -24,8 +24,11 @@
         <cli.command>waka</cli.command>
 
         <go.mvn.version>1.1.2</go.mvn.version>
+        <gmavenplus.version>4.2.1</gmavenplus.version>
+        <groovy.version>4.0.28</groovy.version>
         <go.sdk.version>1.25.6</go.sdk.version>
         <go.bin>${project.basedir}${file.separator}.go</go.bin>
+        <go.coverage.report>${project.build.directory}${file.separator}coverage.out</go.coverage.report>
 
         <sonar.sources>${project.basedir}</sonar.sources>
         <sonar.exclusions>**/*_test.go,**/vendor/**</sonar.exclusions>
@@ -33,8 +36,7 @@
         <sonar.tests>${project.basedir}${file.separator}internal</sonar.tests>
         <sonar.test.inclusions>**/*_test.go</sonar.test.inclusions>
         <sonar.test.exclusions>**/vendor/**</sonar.test.exclusions>
-        <sonar.go.coverage.reportPaths>${project.build.directory}${file.separator}coverage.out
-        </sonar.go.coverage.reportPaths>
+        <sonar.go.coverage.reportPaths>${go.coverage.report}</sonar.go.coverage.reportPaths>
     </properties>
 
     <build>
@@ -61,27 +63,12 @@
                         </goals>
                         <configuration>
                             <skip>${maven.test.skip}</skip>
-                            <logFileStd>${project.build.directory}${file.separator}coverage.out</logFileStd>
+                            <logFileStd>${project.build.directory}${file.separator}go-test.log</logFileStd>
                             <args>
                                 <arg>test</arg>
                                 <arg>-v</arg>
-                                <arg>-cover</arg>
+                                <arg>-coverprofile=${go.coverage.report}</arg>
                                 <arg>./internal/...</arg>
-                            </args>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>go-coverage</id>
-                        <phase>test</phase>
-                        <goals>
-                            <goal>execute</goal>
-                        </goals>
-                        <configuration>
-                            <skip>${maven.test.skip}</skip>
-                            <args>
-                                <arg>test</arg>
-                                <arg>./internal/...</arg>
-                                <arg>-coverprofile=target/coverage.out</arg>
                             </args>
                         </configuration>
                     </execution>
@@ -101,6 +88,88 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.gmavenplus</groupId>
+                <artifactId>gmavenplus-plugin</artifactId>
+                <version>${gmavenplus.version}</version>
+                <executions>
+                    <execution>
+                        <id>check-go-coverage</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>execute</goal>
+                        </goals>
+                        <configuration>
+                            <scripts>
+                                <script><![CDATA[
+                                    if ((project.properties['maven.test.skip'] ?: 'false').toBoolean()) {
+                                        log.info('Skipping Go coverage check because maven.test.skip=true')
+                                        return
+                                    }
+
+                                    def reportFile = new File(project.properties['go.coverage.report'])
+                                    if (!reportFile.isFile()) {
+                                        throw new org.apache.maven.plugin.MojoExecutionException(
+                                                "Go coverage report not found: ${reportFile}")
+                                    }
+
+                                    def totalStatements = BigDecimal.ZERO
+                                    def coveredStatements = BigDecimal.ZERO
+
+                                    reportFile.eachLine('UTF-8') { line ->
+                                        def trimmed = line.trim()
+                                        if (!trimmed || trimmed.startsWith('mode:')) {
+                                            return
+                                        }
+
+                                        def matcher = (trimmed =~ /^.+:\d+\.\d+,\d+\.\d+\s+(\d+)\s+(\d+)$/)
+                                        if (!matcher.matches()) {
+                                            throw new org.apache.maven.plugin.MojoExecutionException(
+                                                    "Unable to parse Go coverage report line: ${line}")
+                                        }
+
+                                        def statements = new BigDecimal(matcher.group(1))
+                                        def count = new BigDecimal(matcher.group(2))
+                                        totalStatements = totalStatements.add(statements)
+                                        if (count.signum() > 0) {
+                                            coveredStatements = coveredStatements.add(statements)
+                                        }
+                                    }
+
+                                    if (totalStatements.signum() == 0) {
+                                        throw new org.apache.maven.plugin.MojoExecutionException(
+                                                "Go coverage report contains no statements: ${reportFile}")
+                                    }
+
+                                    def coverage = coveredStatements
+                                            .multiply(new BigDecimal('100'))
+                                            .divide(totalStatements, 2, java.math.RoundingMode.HALF_UP)
+                                    def minimum = new BigDecimal(project.properties['jacoco.coverage'])
+                                    def minimumPercent = minimum.multiply(new BigDecimal('100'))
+
+                                    log.info("Go statement coverage: ${coverage}% (required >= ${minimumPercent}%)")
+                                    if (coverage < minimumPercent) {
+                                        throw new org.apache.maven.plugin.MojoExecutionException(
+                                                "Go statement coverage ${coverage}% is below required ${minimumPercent}%")
+                                    }
+                                ]]></script>
+                            </scripts>
+                        </configuration>
+                    </execution>
+                </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.apache.groovy</groupId>
+                        <artifactId>groovy</artifactId>
+                        <version>${groovy.version}</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.apache.groovy</groupId>
+                        <artifactId>groovy-ant</artifactId>
+                        <version>${groovy.version}</version>
+                    </dependency>
+                </dependencies>
             </plugin>
         </plugins>
     </build>
