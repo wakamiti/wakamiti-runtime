@@ -22,8 +22,6 @@
     <properties>
         <helidon.version>4.3.3</helidon.version>
         <logback.version>1.5.27</logback.version>
-
-        <sonar.coverage.exclusions>**/WakamitiServiceApplication.java</sonar.coverage.exclusions>
     </properties>
 
     <dependencyManagement>
@@ -137,6 +135,12 @@
             <groupId>com.tngtech.archunit</groupId>
             <artifactId>archunit-junit5</artifactId>
             <version>1.4.1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>es.wakamiti</groupId>
+            <artifactId>wakamiti-commons</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
