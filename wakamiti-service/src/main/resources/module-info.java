@@ -1,10 +1,13 @@
-import io.helidon.webserver.http1.spi.Http1UpgradeProvider;
-
 /*
+ * Copyright (c) 2022-2026 Instituto Tecnológico de Informática (ITI)
+ *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
+import io.helidon.webserver.http1.spi.Http1UpgradeProvider;
+
+
 module wakamiti.service {
 
     requires ch.qos.logback.classic;
