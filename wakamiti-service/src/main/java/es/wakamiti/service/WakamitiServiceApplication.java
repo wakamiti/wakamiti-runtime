@@ -49,12 +49,7 @@ public class WakamitiServiceApplication {
      * 5. Starts the Helidon MicroProfile server.
      */
     static void main() {
-        // Fix for a Service Registry exception related to java.lang.Cloneable.
-        // Prevents the registry from failing when encountering standard marker interfaces.
-        System.setProperty("helidon.service-registry.check-unrecognized-contracts", "false");
-
         try {
-            // 1. Definition of configuration sources by priority order
             var sources = new LinkedList<>(List.of(
                     ConfigSources.systemProperties(),
                     ConfigSources.file(System.getProperty("wakamiti.properties.file")).build(),
@@ -62,19 +57,14 @@ public class WakamitiServiceApplication {
             ));
             Config config = Config.builder().sources(sources).build();
 
-            // 2. Processing of environment variable overrides (dynamic mapping)
             Map<String, String> overrides = getEnvironmentOverrides(config);
             if (!overrides.isEmpty()) {
                 sources.addFirst(ConfigSources.create(overrides, "env-mapped-overrides").build());
                 config = Config.builder().sources(sources).build();
             }
 
-            // 3. Persistence of effective configuration
             saveEffectiveProperties(config);
-
-            // 4. Server start
             Server.builder().config(config).build().start();
-
         } catch (Exception ex) {
             System.err.println("The Wakamiti Service application has failed: " + ex.getMessage());
             ex.printStackTrace(System.err);
@@ -106,7 +96,6 @@ public class WakamitiServiceApplication {
             Config config
     ) throws IOException {
         Properties props = new Properties();
-        // Filter only properties with dots (standard config format)
         config.asMap().orElse(Map.of()).forEach((key, value) -> {
             if (key.contains(".")) {
                 props.put(key, value);
