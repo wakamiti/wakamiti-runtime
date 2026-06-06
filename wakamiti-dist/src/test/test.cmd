@@ -26,6 +26,24 @@ for %%n in (%TESTS%) do (
     )
 )
 
+<nul set /p ".=--- exec: "
+%TRG_DIR%\bin\waka.exe run something > %TRG_DIR%\exec.log 2>&1
+set error=!errorlevel!
+if !error! == 0 (
+    findstr /C:"Executing command: run something" %TRG_DIR%\exec.log >nul || set error=1
+    findstr /C:"One line" %TRG_DIR%\exec.log >nul || set error=1
+    findstr /C:"Another line" %TRG_DIR%\exec.log >nul || set error=1
+)
+if !error! == 0 (
+    echo SUCCESS
+) else (
+    echo ERROR
+    type %TRG_DIR%\exec.log
+)
+if !error! gtr !max_errorlevel! (
+    set max_errorlevel=!error!
+)
+
 if !max_errorlevel! == 0 (
         echo Result: SUCCESS
     ) else (

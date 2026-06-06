@@ -30,6 +30,25 @@ for n in "${TESTS[@]}"; do
   fi
 done
 
+echo -n "--- exec: "
+"$TRG_DIR/bin/waka" run something > "$TRG_DIR/exec.log" 2>&1
+errorlevel=$?
+if [ $errorlevel -eq 0 ] &&
+   grep -Fq "Executing command: run something" "$TRG_DIR/exec.log" &&
+   grep -Fq "One line" "$TRG_DIR/exec.log" &&
+   grep -Fq "Another line" "$TRG_DIR/exec.log"; then
+  echo "SUCCESS"
+else
+  echo "ERROR"
+  cat "$TRG_DIR/exec.log"
+  if [ $errorlevel -eq 0 ]; then
+    errorlevel=1
+  fi
+fi
+if [ $errorlevel -gt $max_errorlevel ]; then
+  max_errorlevel=$errorlevel
+fi
+
 if [ $max_errorlevel -eq 0 ]; then
     echo "Result: SUCCESS"
 else

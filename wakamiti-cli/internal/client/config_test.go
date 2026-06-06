@@ -91,6 +91,181 @@ func TestNewConfig_MissingEffectiveProperties(t *testing.T) {
 	}
 }
 
+func TestNewConfig_RelativeEffectiveProperties(t *testing.T) {
+	tmpDir := t.TempDir()
+	originalWd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Failed to get current working directory: %v", err)
+	}
+	defer os.Chdir(originalWd)
+
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("Failed to change working directory: %v", err)
+	}
+
+	if err := os.Mkdir("config", 0755); err != nil {
+		t.Fatalf("Failed to create config directory: %v", err)
+	}
+
+	if err := os.WriteFile("wakamiti.properties", []byte("effective.properties=config/effective.properties\n"), 0644); err != nil {
+		t.Fatalf("Failed to create wakamiti.properties: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join("config", "effective.properties"), []byte(strings.Join([]string{
+		"server.host=127.0.0.1",
+		"server.port=7264",
+		"server.auth.origin=waka.cli",
+	}, "\n")), 0644); err != nil {
+		t.Fatalf("Failed to create relative effective.properties: %v", err)
+	}
+
+	config, err := NewConfig()
+	if err != nil {
+		t.Fatalf("NewConfig failed: %v", err)
+	}
+
+	if config.ServiceHost != "127.0.0.1" {
+		t.Errorf("ServiceHost=%q want %q", config.ServiceHost, "127.0.0.1")
+	}
+	if config.ServicePort != "7264" {
+		t.Errorf("ServicePort=%q want %q", config.ServicePort, "7264")
+	}
+	if config.Origin != "waka.cli" {
+		t.Errorf("Origin=%q want %q", config.Origin, "waka.cli")
+	}
+}
+
+func TestLoadProperties_ResolvesUserHomeAndNestedReferences(t *testing.T) {
+	tmpDir := t.TempDir()
+	propsPath := filepath.Join(tmpDir, "wakamiti.properties")
+
+	content := strings.Join([]string{
+		"base.path=${user.home}/.wakamiti",
+		"server.system.path=${base.path}/system",
+		"server.log.path=${server.system.path}/log",
+		"server.host=127.0.0.1",
+		"server.port=7264",
+		"server.auth.origin=waka.cli",
+	}, "\n")
+	if err := os.WriteFile(propsPath, []byte(content), 0644); err != nil {
+		t.Fatalf("Failed to create properties file: %v", err)
+	}
+
+	props, err := LoadProperties(propsPath)
+	if err != nil {
+		t.Fatalf("LoadProperties failed: %v", err)
+	}
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		t.Fatalf("Failed to resolve user home: %v", err)
+	}
+	wantBasePath := home + "/.wakamiti"
+	wantSystemPath := wantBasePath + "/system"
+	wantLogPath := wantSystemPath + "/log"
+
+	if props["base.path"] != wantBasePath {
+		t.Errorf("base.path=%q want %q", props["base.path"], wantBasePath)
+	}
+	if props["server.system.path"] != wantSystemPath {
+		t.Errorf("server.system.path=%q want %q", props["server.system.path"], wantSystemPath)
+	}
+	if props["server.log.path"] != wantLogPath {
+		t.Errorf("server.log.path=%q want %q", props["server.log.path"], wantLogPath)
+	}
+}
+
+func TestLoadProperties_UnescapesSpecialCharacters(t *testing.T) {
+	tmpDir := t.TempDir()
+	propsPath := filepath.Join(tmpDir, "escaped.properties")
+
+	content := strings.Join([]string{
+		`message=hello\ world`,
+		`symbolic=a\=b`,
+		`path=c\:\\temp\\wakamiti`,
+		`comment=value\#1`,
+	}, "\n")
+	if err := os.WriteFile(propsPath, []byte(content), 0644); err != nil {
+		t.Fatalf("Failed to create escaped properties file: %v", err)
+	}
+
+	props, err := LoadProperties(propsPath)
+	if err != nil {
+		t.Fatalf("LoadProperties failed: %v", err)
+	}
+
+	if props["message"] != "hello world" {
+		t.Errorf("message=%q want %q", props["message"], "hello world")
+	}
+	if props["symbolic"] != "a=b" {
+		t.Errorf("symbolic=%q want %q", props["symbolic"], "a=b")
+	}
+	if props["path"] != `c:\temp\wakamiti` {
+		t.Errorf("path=%q want %q", props["path"], `c:\temp\wakamiti`)
+	}
+	if props["comment"] != "value#1" {
+		t.Errorf("comment=%q want %q", props["comment"], "value#1")
+	}
+}
+
+func TestNewConfig_InvalidPort(t *testing.T) {
+	tmpDir := t.TempDir()
+	originalWd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Failed to get current working directory: %v", err)
+	}
+	defer os.Chdir(originalWd)
+
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("Failed to change working directory: %v", err)
+	}
+
+	content := strings.Join([]string{
+		"server.host=127.0.0.1",
+		"server.port=70000",
+		"server.auth.origin=waka.cli",
+	}, "\n")
+	if err := os.WriteFile("wakamiti.properties", []byte(content), 0644); err != nil {
+		t.Fatalf("Failed to create wakamiti.properties: %v", err)
+	}
+
+	_, err = NewConfig()
+	if err == nil {
+		t.Fatal("NewConfig should fail when server.port is invalid")
+	}
+	if !strings.Contains(err.Error(), "server.port must be a valid TCP port") {
+		t.Fatalf("err=%q want invalid port validation message", err.Error())
+	}
+}
+
+func TestNewConfig_MissingOrigin(t *testing.T) {
+	tmpDir := t.TempDir()
+	originalWd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Failed to get current working directory: %v", err)
+	}
+	defer os.Chdir(originalWd)
+
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("Failed to change working directory: %v", err)
+	}
+
+	content := strings.Join([]string{
+		"server.host=127.0.0.1",
+		"server.port=7264",
+	}, "\n")
+	if err := os.WriteFile("wakamiti.properties", []byte(content), 0644); err != nil {
+		t.Fatalf("Failed to create wakamiti.properties: %v", err)
+	}
+
+	_, err = NewConfig()
+	if err == nil {
+		t.Fatal("NewConfig should fail when server.auth.origin is missing")
+	}
+	if !strings.Contains(err.Error(), "server.auth.origin is required") {
+		t.Fatalf("err=%q want missing origin validation message", err.Error())
+	}
+}
+
 // Getenv retrieves an environment variable or returns a fallback value.
 func Getenv(key, defaultValue string) string {
 	value := strings.TrimSpace(os.Getenv(key))

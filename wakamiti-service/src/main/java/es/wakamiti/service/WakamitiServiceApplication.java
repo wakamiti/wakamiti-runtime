@@ -20,6 +20,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 
@@ -52,26 +53,38 @@ public class WakamitiServiceApplication {
      */
     static void main() {
         try {
-            var sources = new LinkedList<>(List.of(
-                    ConfigSources.systemProperties(),
-                    ConfigSources.file(System.getProperty("wakamiti.properties.file")).build(),
-                    ConfigSources.classpath("application.yml").build()
-            ));
-            Config config = Config.builder().sources(sources).build();
-
-            Map<String, String> overrides = getEnvironmentOverrides(config);
-            if (!overrides.isEmpty()) {
-                sources.addFirst(ConfigSources.create(overrides, "env-mapped-overrides").build());
-                config = Config.builder().sources(sources).build();
-            }
-
-            saveEffectiveProperties(config);
-            Server.builder().config(config).build().start();
+            run(
+                    System.getProperty("wakamiti.properties.file"),
+                    System.getenv(),
+                    config -> Server.builder().config(config).build().start()
+            );
         } catch (Exception ex) {
             System.err.println("The Wakamiti Service application has failed: " + ex.getMessage());
             ex.printStackTrace(System.err);
             System.exit(1);
         }
+    }
+
+    static void run(
+            String propertiesFile,
+            Map<String, String> environment,
+            Consumer<Config> serverStarter
+    ) throws IOException {
+        var sources = new LinkedList<>(List.of(
+                ConfigSources.systemProperties(),
+                ConfigSources.file(propertiesFile).build(),
+                ConfigSources.classpath("application.yml").build()
+        ));
+        Config config = Config.builder().sources(sources).build();
+
+        Map<String, String> overrides = getEnvironmentOverrides(config, environment);
+        if (!overrides.isEmpty()) {
+            sources.addFirst(ConfigSources.create(overrides, "env-mapped-overrides").build());
+            config = Config.builder().sources(sources).build();
+        }
+
+        saveEffectiveProperties(config);
+        serverStarter.accept(config);
     }
 
     /**
@@ -81,11 +94,12 @@ public class WakamitiServiceApplication {
      * environment variable exists, creates a map to override the internal property.
      */
     private static Map<String, String> getEnvironmentOverrides(
-            Config config
+            Config config,
+            Map<String, String> environment
     ) {
         return config.get("envs").detach().asMap().orElse(Map.of()).entrySet().stream().filter(
-                e -> System.getenv(e.getKey()) != null).collect(
-                Collectors.toMap(Map.Entry::getValue, e -> System.getenv(e.getKey())));
+                e -> environment.get(e.getKey()) != null).collect(
+                Collectors.toMap(Map.Entry::getValue, e -> environment.get(e.getKey())));
     }
 
     /**

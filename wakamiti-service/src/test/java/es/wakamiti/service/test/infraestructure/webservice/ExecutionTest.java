@@ -17,7 +17,6 @@ import jakarta.websocket.*;
 import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.client.Invocation;
 import jakarta.ws.rs.client.WebTarget;
-import jakarta.ws.rs.core.GenericType;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.junit.jupiter.api.AfterEach;
@@ -25,13 +24,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.*;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.LinkedBlockingDeque;
@@ -43,10 +42,14 @@ import static es.wakamiti.service.test.infraestructure.webservice.ExecutionTest.
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 
-@AddConfig(key = "server.auth.origin", value = ORIGIN)
+@AddConfig(
+        key = "server.auth.origin",
+        value = ORIGIN
+)
 @HelidonTest
 class ExecutionTest {
 
@@ -62,6 +65,20 @@ class ExecutionTest {
     private LogHistoryRepository history;
     private URI uri;
 
+    private Session openSession() throws Exception {
+        ClientEndpointConfig config = ClientEndpointConfig.Builder.create().configurator(
+                new OriginConfigurator(ORIGIN)).build();
+        return ContainerProvider.getWebSocketContainer().connectToServer(new Client(), config, uri);
+    }
+
+    private void assertNextMessage(String expected) throws InterruptedException {
+        assertEquals(expected, MESSAGES.poll(10, TimeUnit.SECONDS));
+    }
+
+    private void awaitSessionClosed(Session session) {
+        await().atMost(Duration.ofSeconds(20)).until(session::isOpen, is(false));
+    }
+
     private Invocation.Builder request(String... path) {
         WebTarget t = target;
         for (String p : path) {
@@ -73,10 +90,7 @@ class ExecutionTest {
     @BeforeEach
     void setUp() {
         System.setProperty("sun.net.http.allowRestrictedHeaders", "true");
-        uri = URI.create("ws://%s:%s/exec/out".formatted(
-                target.getUri().getHost(),
-                target.getUri().getPort()
-        ));
+        uri = URI.create("ws://%s:%s/exec/out".formatted(target.getUri().getHost(), target.getUri().getPort()));
     }
 
     @AfterEach
@@ -87,8 +101,7 @@ class ExecutionTest {
 
     @Test
     void testHealth() {
-        try (Response response = request("health")
-                .get()) {
+        try (Response response = request("health").get()) {
             LOGGER.debug(response.readEntity(String.class));
             assertThat(response.getStatus(), is(200));
         }
@@ -97,25 +110,18 @@ class ExecutionTest {
     @DisplayName("Execution with success")
     @Test
     void testExecutionWithSuccess() throws Exception {
-        try (Response response = request("exec")
-                .post(Entity.entity("[\"run\",\"something\"]", MediaType.APPLICATION_JSON_TYPE))) {
+        try (Response response = request("exec").post(
+                Entity.entity("[\"run\",\"something\"]", MediaType.APPLICATION_JSON_TYPE))) {
             assertThat(response.getStatus(), is(202));
-            ClientEndpointConfig config = ClientEndpointConfig.Builder.create()
-                    .configurator(new OriginConfigurator(ORIGIN))
-                    .build();
-            try (Session session = ContainerProvider.getWebSocketContainer().connectToServer(new Client(), config, uri)) {
+            try (Session session = openSession()) {
                 try {
-                    assertEquals("Executing command: run something" + System.lineSeparator(),
-                                 MESSAGES.poll(10, TimeUnit.SECONDS));
-                    assertEquals("One line" + System.lineSeparator(),
-                                 MESSAGES.poll(10, TimeUnit.SECONDS));
-                    assertEquals("Another line" + System.lineSeparator(),
-                                 MESSAGES.poll(10, TimeUnit.SECONDS));
-                    assertEquals("If execution has been cancelled, this line should not appear" + System.lineSeparator(),
-                                 MESSAGES.poll(10, TimeUnit.SECONDS));
+                    assertNextMessage("Executing command: run something" + System.lineSeparator());
+                    assertNextMessage("One line" + System.lineSeparator());
+                    assertNextMessage("Another line" + System.lineSeparator());
+                    assertNextMessage("If execution has been cancelled, this line should not appear"
+                            + System.lineSeparator());
                 } finally {
-                    await().atMost(Duration.ofSeconds(20))
-                            .until(session::isOpen, is(false));
+                    awaitSessionClosed(session);
                 }
             }
             assertEquals(0, history.size());
@@ -127,8 +133,7 @@ class ExecutionTest {
     @ParameterizedTest(name = "[{index}] when entity={argumentsWithNames}")
     @MethodSource("bodies")
     void testExecutionWithBadRequestError(List<String> entity) {
-        try (Response response = request("exec")
-                .post(Entity.entity(entity, MediaType.APPLICATION_JSON))) {
+        try (Response response = request("exec").post(Entity.entity(entity, MediaType.APPLICATION_JSON))) {
             assertThat(response.getStatus(), is(400));
         }
     }
@@ -136,8 +141,8 @@ class ExecutionTest {
     @DisplayName("Execution with unauthorized error")
     @Test
     void testExecutionWithUnauthorizedError() {
-        try (Response response = target.path("exec").request()
-                .post(Entity.entity(List.of("run","something"), MediaType.APPLICATION_JSON_TYPE))) {
+        try (Response response = target.path("exec").request().post(
+                Entity.entity(List.of("run", "something"), MediaType.APPLICATION_JSON_TYPE))) {
             assertThat(response.getStatus(), is(401));
         }
     }
@@ -149,54 +154,39 @@ class ExecutionTest {
         try (Response response = request("exec").post(entity)) {
             assertThat(response.getStatus(), is(202));
         }
-        await().pollDelay(Duration.ofSeconds(1)).until(() -> true);
-        try (Response response = request("exec").post(entity)) {
-            assertThat(response.getStatus(), is(429));
-            ClientEndpointConfig config = ClientEndpointConfig.Builder.create()
-                    .configurator(new OriginConfigurator(ORIGIN))
-                    .build();
-            try (Session session = ContainerProvider.getWebSocketContainer().connectToServer(new Client(), config, uri)) {
-                try {
-                    assertEquals("Executing command: abc" + System.lineSeparator(),
-                            MESSAGES.poll(10, TimeUnit.SECONDS));
-                    assertEquals("One line" + System.lineSeparator(),
-                            MESSAGES.poll(10, TimeUnit.SECONDS));
-                    assertEquals("Another line" + System.lineSeparator(),
-                            MESSAGES.poll(10, TimeUnit.SECONDS));
-                    assertEquals("If execution has been cancelled, this line should not appear" + System.lineSeparator(),
-                            MESSAGES.poll(10, TimeUnit.SECONDS));
-                } finally {
-                    await().atMost(Duration.ofSeconds(20))
-                            .until(session::isOpen, is(false));
+        try (Session session = openSession()) {
+            try {
+                assertNextMessage("Executing command: abc" + System.lineSeparator());
+                try (Response response = request("exec").post(
+                        Entity.entity(List.of("abc"), MediaType.APPLICATION_JSON_TYPE))) {
+                    assertThat(response.getStatus(), is(429));
                 }
+                assertNextMessage("One line" + System.lineSeparator());
+                assertNextMessage("Another line" + System.lineSeparator());
+                assertNextMessage("If execution has been cancelled, this line should not appear"
+                        + System.lineSeparator());
+            } finally {
+                awaitSessionClosed(session);
             }
-            assertEquals(0, history.size());
-            assertEquals(0, STATUS.get());
         }
+        assertEquals(0, history.size());
+        assertEquals(0, STATUS.get());
     }
 
     @DisplayName("Execution Socket when send STOP with success")
     @Test
     void testExecutionSocketWhenSendStopWithSuccess() throws Exception {
-        try (Response response = request("exec")
-                .post(Entity.entity(List.of("run","something"), MediaType.APPLICATION_JSON_TYPE))) {
+        try (Response response = request("exec").post(
+                Entity.entity(List.of("run", "something"), MediaType.APPLICATION_JSON_TYPE))) {
             assertThat(response.getStatus(), is(202));
-            ClientEndpointConfig config = ClientEndpointConfig.Builder.create()
-                    .configurator(new OriginConfigurator(ORIGIN))
-                    .build();
-            try (Session session = ContainerProvider.getWebSocketContainer()
-                    .connectToServer(new Client(), config, uri)) {
+            try (Session session = openSession()) {
                 try {
+                    assertNextMessage("Executing command: run something" + System.lineSeparator());
                     session.getBasicRemote().sendText("STOP");
-                    assertEquals("Executing command: run something" + System.lineSeparator(),
-                            MESSAGES.poll(10, TimeUnit.SECONDS));
-                    assertEquals("One line" + System.lineSeparator(),
-                            MESSAGES.poll(10, TimeUnit.SECONDS));
-                    assertEquals("Another line" + System.lineSeparator(),
-                            MESSAGES.poll(10, TimeUnit.SECONDS));
+                    assertNextMessage("One line" + System.lineSeparator());
+                    assertNextMessage("Another line" + System.lineSeparator());
                 } finally {
-                    await().atMost(Duration.ofSeconds(20))
-                            .until(session::isOpen, is(false));
+                    awaitSessionClosed(session);
                 }
             }
             assertEquals(0, history.size());
@@ -207,12 +197,10 @@ class ExecutionTest {
     @DisplayName("Execution Socket when send invalid message with success")
     @Test
     void testExecutionSocketWhenSendInvalidMessageWithSuccess() throws Exception {
-        ClientEndpointConfig config = ClientEndpointConfig.Builder.create()
-                .configurator(new OriginConfigurator(ORIGIN))
-                .build();
-        try (Session session = ContainerProvider.getWebSocketContainer().connectToServer(new Client(), config, uri)) {
+        try (Session session = openSession()) {
             session.getBasicRemote().sendText("ABC");
-            assertEquals("Invalid message received: ABC", MESSAGES.poll(10, TimeUnit.SECONDS));
+            assertNextMessage("Invalid message received: ABC");
+            awaitSessionClosed(session);
             assertFalse(session.isOpen());
         }
         assertEquals(0, history.size());
@@ -224,17 +212,24 @@ class ExecutionTest {
     public static class Client extends Endpoint {
 
         @Override
-        public void onOpen(Session session, EndpointConfig config) {
+        public void onOpen(
+                Session session,
+                EndpointConfig config
+        ) {
             LOGGER.trace("Opening client session {}", session.getId());
-            session.addMessageHandler(String.class, msg -> {
-                LOGGER.trace("Message received in client session {}: {}", session.getId(), msg);
-                MESSAGES.add(msg);
-            });
-            await().pollDelay(1, TimeUnit.SECONDS).until(() -> true);
+            session.addMessageHandler(
+                    String.class, msg -> {
+                        LOGGER.trace("Message received in client session {}: {}", session.getId(), msg);
+                        MESSAGES.add(msg);
+                    }
+            );
         }
 
         @Override
-        public void onError(Session session, Throwable error) {
+        public void onError(
+                Session session,
+                Throwable error
+        ) {
             LOGGER.trace("Error in client session {}", session.getId(), error);
         }
 
@@ -243,16 +238,18 @@ class ExecutionTest {
                 Session session,
                 CloseReason reason
         ) {
-            LOGGER.trace("Closing client session {}: {} - {}",
-                         session.getId(), reason.getCloseCode(), reason.getReasonPhrase());
+            LOGGER.trace(
+                    "Closing client session {}: {} - {}", session.getId(), reason.getCloseCode(),
+                    reason.getReasonPhrase()
+            );
             if (!reason.getCloseCode().equals(CloseReason.CloseCodes.NORMAL_CLOSURE)) {
                 MESSAGES.add(reason.getReasonPhrase());
             } else {
                 STATUS.set(Integer.parseInt(reason.getReasonPhrase()));
             }
-            await().pollDelay(1, TimeUnit.SECONDS).until(() -> true);
         }
     }
+
 
     private static class OriginConfigurator extends ClientEndpointConfig.Configurator {
 
@@ -268,11 +265,7 @@ class ExecutionTest {
         }
     }
 
-    static Stream<Arguments> bodies(){
-        return Stream.of(
-                Arguments.of((Object) null),
-                Arguments.of(List.of()),
-                Arguments.of(List.of(""))
-        );
+    static Stream<Arguments> bodies() {
+        return Stream.of(Arguments.of((Object) null), Arguments.of(List.of()), Arguments.of(List.of("")));
     }
 }
