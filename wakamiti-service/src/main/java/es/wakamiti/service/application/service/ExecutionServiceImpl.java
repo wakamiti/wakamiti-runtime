@@ -18,9 +18,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.Semaphore;
 
 
 /**
@@ -33,9 +32,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class ExecutionServiceImpl implements ExecutionService {
 
     private final static Logger LOGGER = LoggerFactory.getLogger(WakamitiServiceApplication.NAME);
+    private static final int CONCURRENCY_PERMITS = 1;
 
-    /** Concurrency control to ensure sequential execution. */
-    private final AtomicBoolean running = new AtomicBoolean(false);
+    private final Semaphore semaphore = new Semaphore(CONCURRENCY_PERMITS, true);
 
     private final ExecutionNotifier<?> notifier;
     private final WakamitiRunner runner;
@@ -70,22 +69,12 @@ public class ExecutionServiceImpl implements ExecutionService {
             List<String> argv
     ) throws IllegalArgumentException, ResourceException {
         validateCommand(argv);
-        checkConcurrency();
+        acquireExecutionPermit();
 
         LOGGER.info("Starting command execution: {}", String.join(" ", argv));
 
-        CompletableFuture.supplyAsync(() -> runner.run(argv))
-                .handle((result, ex) -> {
-                    if (ex != null) {
-                        LOGGER.error("Error during command execution: {}", String.join(" ", argv), ex);
-                        notifier.notify(1); // Notify failure (default code 1)
-                    } else {
-                        LOGGER.info("Command finished with result: {}", result);
-                        notifier.notify(result);
-                    }
-                    return null;
-                })
-                .whenComplete((_, _) -> cleanup());
+        CompletableFuture.supplyAsync(() -> runner.run(argv)).handle(this::handleExecutionResult).whenComplete(
+                (_, _) -> cleanup());
     }
 
     /**
@@ -107,8 +96,22 @@ public class ExecutionServiceImpl implements ExecutionService {
         }
     }
 
-    private void checkConcurrency() {
-        if (running.getAndSet(true)) {
+    private Void handleExecutionResult(
+            Integer result,
+            Throwable throwable
+    ) {
+        if (throwable != null) {
+            LOGGER.error("Error during command execution", throwable);
+            notifier.notify(1);
+        } else {
+            LOGGER.info("Command finished with result: {}", result);
+            notifier.notify(result);
+        }
+        return null;
+    }
+
+    private void acquireExecutionPermit() {
+        if (!semaphore.tryAcquire()) {
             throw new ResourceException("An execution is already in progress. Please wait for it to finish.");
         }
     }
@@ -117,7 +120,7 @@ public class ExecutionServiceImpl implements ExecutionService {
         try {
             publisher.clear();
         } finally {
-            running.set(false);
+            semaphore.release();
         }
     }
 }
